@@ -1225,97 +1225,117 @@ Paste your token below (JWT prefix will be automatically removed):""",
         desc_label2.pack(side=tk.RIGHT)
         
     def open_api_presets_modal(self):
-        """Open modal with API configuration presets"""
+        """Open API presets modal with dropdown selector"""
         preset_dialog = tk.Toplevel(self.root)
         preset_dialog.title("API Configuration Presets")
-        preset_dialog.geometry("800x600")
+        preset_dialog.geometry("600x400")
         preset_dialog.transient(self.root)
         preset_dialog.grab_set()
         
         # Center the dialog
-        preset_dialog.geometry("+%d+%d" % (
-            self.root.winfo_rootx() + 100,
-            self.root.winfo_rooty() + 50
-        ))
+        preset_dialog.update_idletasks()
+        x = (preset_dialog.winfo_screenwidth() // 2) - (300)
+        y = (preset_dialog.winfo_screenheight() // 2) - (200)
+        preset_dialog.geometry(f"600x400+{x}+{y}")
         
-        # Main frame with scrolling
+        # Main frame
         main_frame = ttk.Frame(preset_dialog, padding=20)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Title
-        ttk.Label(main_frame, text="🔧 API Configuration Presets", 
-                 font=('Arial', 14, 'bold')).pack(pady=(0, 20))
+        title_label = ttk.Label(main_frame, text="🔧 API Configuration Presets", 
+                               font=('Arial', 16, 'bold'))
+        title_label.pack(pady=(0, 20))
         
         # Description
-        desc_text = ("Select a preset configuration to automatically populate the API settings.\n"
-                    "This will update multiple configuration fields based on the selected endpoint.")
-        ttk.Label(main_frame, text=desc_text, wraplength=750, justify=tk.CENTER).pack(pady=(0, 20))
+        desc_label = ttk.Label(main_frame, 
+                              text="Select a preset configuration to quickly set up API endpoints with all required headers and parameters.",
+                              font=('Arial', 10), wraplength=550, justify=tk.CENTER)
+        desc_label.pack(pady=(0, 30))
         
-        # Presets frame
-        presets_frame = ttk.Frame(main_frame)
-        presets_frame.pack(fill=tk.BOTH, expand=True)
+        # Preset selector frame
+        selector_frame = ttk.LabelFrame(main_frame, text="Select Preset Configuration", padding=15)
+        selector_frame.pack(fill=tk.X, pady=(0, 20))
         
-        # Unified Gateway - Realtime Recommendation Preset (current default)
-        self.create_preset_option(presets_frame,
-            "🎯 Unified Gateway - Realtime Recommendation", 
-            "unified-gateway.doordash.com/cx/v3/feed/realtime_recommendation",
-            "Current realtime recommendation endpoint with pagination support",
-            self.apply_unified_realtime_preset
-        )
+        # Dropdown with presets
+        preset_label = ttk.Label(selector_frame, text="Available Presets:", font=('Arial', 11, 'bold'))
+        preset_label.pack(anchor=tk.W, pady=(0, 10))
         
-        # Consumer Mobile BFF - Homepage
-        self.create_preset_option(presets_frame,
-            "🏠 Consumer Mobile BFF - Homepage",
-            "consumer-mobile-bff.doordash.com/v3/feed/homepage",
-            "Homepage feed endpoint with cursor pagination and full feature flags",
-            self.apply_homepage_preset
-        )
+        # Define preset options
+        self.preset_options = {
+            "🎯 Unified Gateway - Realtime Recommendation": {
+                "description": "Current realtime recommendation endpoint with pagination support",
+                "endpoint": "unified-gateway.doordash.com/cx/v3/feed/realtime_recommendation",
+                "method": self.apply_unified_realtime_preset
+            },
+            "🏠 Consumer Mobile BFF - Homepage": {
+                "description": "Homepage feed endpoint with cursor pagination and full feature flags",
+                "endpoint": "consumer-mobile-bff.doordash.com/v3/feed/homepage",
+                "method": self.apply_homepage_preset
+            },
+            "📱 DoorDash Prod App": {
+                "description": "Production Android app configuration with latest device IDs and session data",
+                "endpoint": "consumer-mobile-bff.doordash.com/v3/feed/homepage",
+                "method": self.apply_prod_app_preset
+            },
+            "📱 Consumer Mobile BFF - Feed Me (Legacy)": {
+                "description": "Legacy feed me endpoint with iOS feature flags",
+                "endpoint": "consumer-mobile-bff.doordash.com/v3/feed/me",
+                "method": self.apply_feed_me_preset
+            }
+        }
         
-        # DoorDash Prod App
-        self.create_preset_option(presets_frame,
-            "📱 DoorDash Prod App",
-            "consumer-mobile-bff.doordash.com/v3/feed/homepage",
-            "Production Android app configuration with latest device IDs and session data",
-            self.apply_prod_app_preset
-        )
+        # Dropdown combobox
+        self.selected_preset = tk.StringVar()
+        preset_combo = ttk.Combobox(selector_frame, textvariable=self.selected_preset, 
+                                   values=list(self.preset_options.keys()),
+                                   state="readonly", width=70, font=('Arial', 10))
+        preset_combo.pack(fill=tk.X, pady=(0, 15))
+        preset_combo.set("Select a preset...")
         
-        # Feed Me API Preset (legacy from previous version)
-        self.create_preset_option(presets_frame, 
-            "📱 Consumer Mobile BFF - Feed Me (Legacy)",
-            "consumer-mobile-bff.doordash.com/v3/feed/me",
-            "Legacy feed me endpoint with iOS feature flags",
-            self.apply_feed_me_preset
-        )
+        # Description area
+        desc_frame = ttk.Frame(selector_frame)
+        desc_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Custom preset
-        self.create_preset_option(presets_frame,
-            "⚙️ Custom Configuration",
-            "Manually configure all settings",
-            "Keep current configuration and close modal",
-            lambda: preset_dialog.destroy()
-        )
+        ttk.Label(desc_frame, text="Description:", font=('Arial', 10, 'bold')).pack(anchor=tk.W)
+        self.preset_desc_label = ttk.Label(desc_frame, text="Choose a preset to see its description", 
+                                          font=('Arial', 9), wraplength=500, justify=tk.LEFT)
+        self.preset_desc_label.pack(anchor=tk.W, pady=(5, 0))
+        
+        ttk.Label(desc_frame, text="Endpoint:", font=('Arial', 10, 'bold')).pack(anchor=tk.W, pady=(10, 0))
+        self.preset_endpoint_label = ttk.Label(desc_frame, text="", 
+                                              font=('Consolas', 9), foreground='blue')
+        self.preset_endpoint_label.pack(anchor=tk.W, pady=(5, 0))
+        
+        # Update description when selection changes
+        def on_preset_selected(event):
+            selected = self.selected_preset.get()
+            if selected in self.preset_options:
+                preset_info = self.preset_options[selected]
+                self.preset_desc_label.config(text=preset_info["description"])
+                self.preset_endpoint_label.config(text=preset_info["endpoint"])
+            else:
+                self.preset_desc_label.config(text="Choose a preset to see its description")
+                self.preset_endpoint_label.config(text="")
+        
+        preset_combo.bind('<<ComboboxSelected>>', on_preset_selected)
         
         # Buttons frame
         buttons_frame = ttk.Frame(main_frame)
         buttons_frame.pack(fill=tk.X, pady=(20, 0))
         
+        def apply_selected_preset():
+            selected = self.selected_preset.get()
+            if selected in self.preset_options:
+                preset_info = self.preset_options[selected]
+                preset_info["method"]()  # Call the preset method
+            else:
+                messagebox.showwarning("No Selection", "Please select a preset configuration first.")
+        
+        # Apply and Cancel buttons
+        ttk.Button(buttons_frame, text="✅ Apply Preset", command=apply_selected_preset,
+                  style='Accent.TButton').pack(side=tk.RIGHT, padx=(10, 0))
         ttk.Button(buttons_frame, text="❌ Cancel", command=preset_dialog.destroy).pack(side=tk.RIGHT)
-        
-    def create_preset_option(self, parent, title, endpoint, description, command):
-        """Create a preset option button with description"""
-        option_frame = ttk.LabelFrame(parent, text=title, padding=15)
-        option_frame.pack(fill=tk.X, pady=(0, 15))
-        
-        # Endpoint info
-        ttk.Label(option_frame, text=f"Endpoint: {endpoint}", 
-                 font=('Monaco', 9), foreground='blue').pack(anchor=tk.W, pady=(0, 5))
-        
-        # Description
-        ttk.Label(option_frame, text=description, wraplength=700).pack(anchor=tk.W, pady=(0, 10))
-        
-        # Apply button
-        ttk.Button(option_frame, text="🚀 Apply This Configuration", 
-                  command=command).pack(side=tk.LEFT)
 
     def apply_feed_me_preset(self):
         """Apply the Feed Me preset configuration based on the provided curl command"""
