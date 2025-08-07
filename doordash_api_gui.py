@@ -1228,38 +1228,38 @@ Paste your token below (JWT prefix will be automatically removed):""",
         """Open API presets modal with dropdown selector"""
         preset_dialog = tk.Toplevel(self.root)
         preset_dialog.title("API Configuration Presets")
-        preset_dialog.geometry("600x400")
+        preset_dialog.geometry("700x500")
         preset_dialog.transient(self.root)
         preset_dialog.grab_set()
         
         # Center the dialog
         preset_dialog.update_idletasks()
-        x = (preset_dialog.winfo_screenwidth() // 2) - (300)
-        y = (preset_dialog.winfo_screenheight() // 2) - (200)
-        preset_dialog.geometry(f"600x400+{x}+{y}")
+        x = (preset_dialog.winfo_screenwidth() // 2) - (350)
+        y = (preset_dialog.winfo_screenheight() // 2) - (250)
+        preset_dialog.geometry(f"700x500+{x}+{y}")
         
-        # Main frame
-        main_frame = ttk.Frame(preset_dialog, padding=20)
+        # Main frame with more padding
+        main_frame = ttk.Frame(preset_dialog, padding=25)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Title
         title_label = ttk.Label(main_frame, text="🔧 API Configuration Presets", 
                                font=('Arial', 16, 'bold'))
-        title_label.pack(pady=(0, 20))
+        title_label.pack(pady=(0, 25))
         
         # Description
         desc_label = ttk.Label(main_frame, 
                               text="Select a preset configuration to quickly set up API endpoints with all required headers and parameters.",
-                              font=('Arial', 10), wraplength=550, justify=tk.CENTER)
+                              font=('Arial', 10), wraplength=650, justify=tk.CENTER)
         desc_label.pack(pady=(0, 30))
         
-        # Preset selector frame
-        selector_frame = ttk.LabelFrame(main_frame, text="Select Preset Configuration", padding=15)
-        selector_frame.pack(fill=tk.X, pady=(0, 20))
+        # Preset selector frame with more padding
+        selector_frame = ttk.LabelFrame(main_frame, text="Select Preset Configuration", padding=20)
+        selector_frame.pack(fill=tk.X, pady=(0, 25))
         
         # Dropdown with presets
         preset_label = ttk.Label(selector_frame, text="Available Presets:", font=('Arial', 11, 'bold'))
-        preset_label.pack(anchor=tk.W, pady=(0, 10))
+        preset_label.pack(anchor=tk.W, pady=(0, 15))
         
         # Define preset options
         self.preset_options = {
@@ -1289,23 +1289,23 @@ Paste your token below (JWT prefix will be automatically removed):""",
         self.selected_preset = tk.StringVar()
         preset_combo = ttk.Combobox(selector_frame, textvariable=self.selected_preset, 
                                    values=list(self.preset_options.keys()),
-                                   state="readonly", width=70, font=('Arial', 10))
-        preset_combo.pack(fill=tk.X, pady=(0, 15))
+                                   state="readonly", width=80, font=('Arial', 10))
+        preset_combo.pack(fill=tk.X, pady=(0, 20))
         preset_combo.set("Select a preset...")
         
-        # Description area
+        # Description area with more spacing
         desc_frame = ttk.Frame(selector_frame)
-        desc_frame.pack(fill=tk.X, pady=(0, 10))
+        desc_frame.pack(fill=tk.X, pady=(0, 15))
         
         ttk.Label(desc_frame, text="Description:", font=('Arial', 10, 'bold')).pack(anchor=tk.W)
         self.preset_desc_label = ttk.Label(desc_frame, text="Choose a preset to see its description", 
-                                          font=('Arial', 9), wraplength=500, justify=tk.LEFT)
-        self.preset_desc_label.pack(anchor=tk.W, pady=(5, 0))
+                                          font=('Arial', 9), wraplength=600, justify=tk.LEFT)
+        self.preset_desc_label.pack(anchor=tk.W, pady=(8, 0))
         
-        ttk.Label(desc_frame, text="Endpoint:", font=('Arial', 10, 'bold')).pack(anchor=tk.W, pady=(10, 0))
+        ttk.Label(desc_frame, text="Endpoint:", font=('Arial', 10, 'bold')).pack(anchor=tk.W, pady=(15, 0))
         self.preset_endpoint_label = ttk.Label(desc_frame, text="", 
                                               font=('Consolas', 9), foreground='blue')
-        self.preset_endpoint_label.pack(anchor=tk.W, pady=(5, 0))
+        self.preset_endpoint_label.pack(anchor=tk.W, pady=(8, 0))
         
         # Update description when selection changes
         def on_preset_selected(event):
