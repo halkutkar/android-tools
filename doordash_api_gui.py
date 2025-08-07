@@ -98,8 +98,11 @@ class DoorDashAPIGUI:
             warnings.append("⚠️ Authorization token not set - Click 'Set Auth Token' or configure in API Settings tab")
         
         # Check for required configuration
-        if not self.config.get('API_HOST'):
-            warnings.append("⚠️ API Host not configured")
+        if not self.config.get('API_BASE_URL'):
+            warnings.append("⚠️ API Base URL not configured")
+            
+        if not self.config.get('API_ENDPOINT_PATH'):
+            warnings.append("⚠️ API Endpoint Path not configured")
             
         if not self.config.get('REALTIME_EVENTS'):
             warnings.append("⚠️ No realtime events configured")
@@ -404,7 +407,7 @@ class DoorDashAPIGUI:
         # API configuration fields
         ttk.Label(scrollable_frame, text="🔌 API Connection", font=('Arial', 12, 'bold')).pack(pady=(0, 10))
         
-        # API Host with preset button
+        # Base URL field
         self.create_api_host_field_with_presets(scrollable_frame)
         
         self.create_config_field(scrollable_frame, "Experience ID", "EXPERIENCE_ID", 
@@ -641,7 +644,7 @@ class DoorDashAPIGUI:
             }
             
             # Prepare URL with query parameters
-            url = f"https://{self.config.get('API_HOST', '')}/cx/v3/feed/realtime_recommendation"
+            url = f"{self.config.get('API_BASE_URL', '')}{self.config.get('API_ENDPOINT_PATH', '')}"
             params = {
                 "common_fields.lat": self.config.get("LATITUDE", ""),
                 "common_fields.lng": self.config.get("LONGITUDE", ""),
@@ -1055,31 +1058,44 @@ class DoorDashAPIGUI:
 
     def create_api_host_field_with_presets(self, parent):
         """Create API Host field with presets button"""
-        frame = ttk.Frame(parent)
-        frame.pack(fill=tk.X, pady=2)
+        # Base URL field
+        base_url_frame = ttk.Frame(parent)
+        base_url_frame.pack(fill=tk.X, pady=2)
         
-        # Label
-        label_widget = ttk.Label(frame, text="API Host:", font=('Arial', 9, 'bold'), width=20)
+        label_widget = ttk.Label(base_url_frame, text="Base URL:", font=('Arial', 9, 'bold'), width=20)
         label_widget.pack(side=tk.LEFT, padx=(0, 10))
         
-        # Clean JWT prefix if this is an authorization token field
-        initial_value = self.config.get('API_HOST', '')
-        
-        # Entry variable
+        initial_value = self.config.get('API_BASE_URL', 'https://unified-gateway.doordash.com')
         var = tk.StringVar(value=initial_value)
-        self.config_vars['API_HOST'] = var
+        self.config_vars['API_BASE_URL'] = var
         
-        # Entry widget
-        entry = ttk.Entry(frame, textvariable=var, width=50)
+        entry = ttk.Entry(base_url_frame, textvariable=var, width=50)
         entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         
-        # Presets button
-        ttk.Button(frame, text="🔧 API Presets", command=self.open_api_presets_modal).pack(side=tk.LEFT)
-        
-        # Description label
-        desc_label = ttk.Label(frame, text="DoorDash API hostname", font=('Arial', 8), 
-                             foreground='gray')
+        desc_label = ttk.Label(base_url_frame, text="e.g., https://consumer-mobile-bff.doordash.com", 
+                             font=('Arial', 8), foreground='gray')
         desc_label.pack(side=tk.RIGHT)
+        
+        # Endpoint Path field
+        endpoint_frame = ttk.Frame(parent)
+        endpoint_frame.pack(fill=tk.X, pady=2)
+        
+        label_widget2 = ttk.Label(endpoint_frame, text="Endpoint Path:", font=('Arial', 9, 'bold'), width=20)
+        label_widget2.pack(side=tk.LEFT, padx=(0, 10))
+        
+        initial_path = self.config.get('API_ENDPOINT_PATH', '/cx/v3/feed/realtime_recommendation')
+        path_var = tk.StringVar(value=initial_path)
+        self.config_vars['API_ENDPOINT_PATH'] = path_var
+        
+        entry2 = ttk.Entry(endpoint_frame, textvariable=path_var, width=50)
+        entry2.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+        
+        # Presets button
+        ttk.Button(endpoint_frame, text="🔧 API Presets", command=self.open_api_presets_modal).pack(side=tk.LEFT)
+        
+        desc_label2 = ttk.Label(endpoint_frame, text="e.g., /v3/feed/homepage", 
+                              font=('Arial', 8), foreground='gray')
+        desc_label2.pack(side=tk.RIGHT)
         
     def open_api_presets_modal(self):
         """Open modal with API configuration presets"""
@@ -1112,20 +1128,28 @@ class DoorDashAPIGUI:
         presets_frame = ttk.Frame(main_frame)
         presets_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Feed Me API Preset
-        self.create_preset_option(presets_frame, 
-            "📱 Consumer Mobile BFF - Feed Me",
-            "consumer-mobile-bff.doordash.com/v3/feed/me",
-            "Primary consumer feed endpoint with full feature flags",
-            self.apply_feed_me_preset
-        )
-        
-        # Realtime Recommendation Preset (current)
+        # Unified Gateway - Realtime Recommendation Preset (current default)
         self.create_preset_option(presets_frame,
             "🎯 Unified Gateway - Realtime Recommendation", 
             "unified-gateway.doordash.com/cx/v3/feed/realtime_recommendation",
-            "Current realtime recommendation endpoint (already configured)",
-            self.apply_realtime_preset
+            "Current realtime recommendation endpoint with pagination support",
+            self.apply_unified_realtime_preset
+        )
+        
+        # Consumer Mobile BFF - Homepage
+        self.create_preset_option(presets_frame,
+            "🏠 Consumer Mobile BFF - Homepage",
+            "consumer-mobile-bff.doordash.com/v3/feed/homepage",
+            "Homepage feed endpoint with cursor pagination and full feature flags",
+            self.apply_homepage_preset
+        )
+        
+        # Feed Me API Preset (legacy from previous version)
+        self.create_preset_option(presets_frame, 
+            "📱 Consumer Mobile BFF - Feed Me (Legacy)",
+            "consumer-mobile-bff.doordash.com/v3/feed/me",
+            "Legacy feed me endpoint with iOS feature flags",
+            self.apply_feed_me_preset
         )
         
         # Custom preset
@@ -1162,7 +1186,8 @@ class DoorDashAPIGUI:
         """Apply the Feed Me preset configuration based on the provided curl command"""
         # Configuration based on the curl command provided
         feed_me_config = {
-            'API_HOST': 'consumer-mobile-bff.doordash.com',
+            'API_BASE_URL': 'https://consumer-mobile-bff.doordash.com',
+            'API_ENDPOINT_PATH': '/v3/feed/me',
             'EXPERIENCE_ID': 'doordash',
             'USER_AGENT': 'DoordashConsumer/7.32.0 (iPhone; iOS 18.5; Scale/3.0)',
             'CLIENT_VERSION': 'ios v7.32.0 b309062.250806',
@@ -1209,18 +1234,109 @@ class DoorDashAPIGUI:
                           "⚠️ Note: You still need to set your Authorization Token\n"
                           "The preset has configured all other required headers and parameters.")
     
-    def apply_realtime_preset(self):
-        """Apply the Realtime Recommendation preset (current configuration)"""
+    def apply_unified_realtime_preset(self):
+        """Apply the Unified Gateway - Realtime Recommendation preset configuration"""
+        # Configuration based on the first curl command provided
+        unified_realtime_config = {
+            'API_BASE_URL': 'https://unified-gateway.doordash.com',
+            'API_ENDPOINT_PATH': '/cx/v3/feed/realtime_recommendation',
+            'EXPERIENCE_ID': 'doordash',
+            'USER_AGENT': 'DoorDashConsumer/Android 16.0.0-prod-debug',
+            'CLIENT_VERSION': 'android v16.0.0-prod-debug b16000009',
+            'ACCEPT_LANGUAGE': 'en-US',
+            'USER_LOCALE': 'en-US',
+            'LATITUDE': '34.0282903',
+            'LONGITUDE': '-118.373421',
+            'SUBMARKET_ID': '1',
+            'DISTRICT_ID': '3',
+            'FACETS_VERSION': '4.0.0',
+            'FACETS_FEATURE_STORE': 'treatmentVariant3',
+            'BFF_ERROR_FORMAT': 'v2',
+            'SUPPORT_PARTNER_DASHPASS': 'true',
+            'SESSION_ID': '88d4f03e-14d2-44bb-a1e0-084db5d7bd0f-dd-and',
+            'CLIENT_REQUEST_ID': '0b7956f5-3b04-4fcc-bf13-5f83916d5ad7-dd-and',
+            'CORRELATION_ID': '348fce35-5953-415e-a0bf-02394a8a6cd7-dd-and',
+            'DD_LOCATION_CONTEXT': 'eyJsYXQiOjM0LjAyODI5MDMsImxuZyI6LTExOC4zNzM0MjEsIm1hcmtldF9pZCI6IjIiLCJzdWJtYXJrZXRfaWQiOiIxIiwiZGlzdHJpY3RfaWQiOiIzIiwidGltZXpvbmUiOiJBbWVyaWNhL0xvc19BbmdlbGVzIiwiemlwY29kZSI6IjkwMDE2IiwiY291bnRyeV9zaG9ydF9uYW1lIjoiVVMiLCJjaXR5IjoiTG9zIEFuZ2VsZXMiLCJzdGF0ZSI6IkNBIiwiY29uc3VtZXJfYWRkcmVzc19saW5rX2lkIjoiMTQ1NTEyMzQxMiIsImFkZHJlc3NfaWQiOiIzNDUyMzM0MjkiLCJpc19ndWVzdF9jb25zdW1lciI6ZmFsc2V9',
+            'DD_IDS': '{"dd_device_id":"78158b794698adba","dd_delivery_correlation_id":"6823d337-a3cf-4072-81b3-aa6fcba69b8d","dd_login_id":"lx_d16f81d2-773c-4f06-9997-b0de82bfbf32","dd_session_id":"sx_eb41331c-72f7-4b26-bba4-1e58f7ba6566","dd_android_id":"78158b794698adba","dd_android_advertising_id":"29804a87-b1f8-4db9-be15-a25ec4606c91"}',
+            'COOKIE': '__cf_bm=DIupgxWsFkASAiujjiTT2MT3ur4TChDFCiT_wEhxM0k-1754597899-1.0.1.1-Pq13lqhelrTdfq3KP0bH2WIPROBGaoqZ4xsLnORM14sHGeP9WeNJHYnioQCpI9RUr1tAssqTfXIGS8NNIE1Zv_QpGiGnSPGrHkh86fGk3qc; dd_country_shortname=US; dd_market_id=2',
+            'REALTIME_EVENTS': '[{"action_type":"store_visit","entity_id":"4932","timestamp":"2025-08-07 12:47:57"}]',
+            'DEFAULT_VERBOSE': 'true',
+            'MAX_VERBOSE_LINES': '100'
+        }
+        
+        # Update config dictionary
+        for key, value in unified_realtime_config.items():
+            self.config[key] = value
+            
+        # Update GUI variables
+        for key, value in unified_realtime_config.items():
+            if key in self.config_vars:
+                self.config_vars[key].set(value)
+        
         # Close the preset dialog
         for widget in self.root.winfo_children():
             if isinstance(widget, tk.Toplevel):
                 widget.destroy()
                 break
-                
+        
         self.update_warning_banner()
-        messagebox.showinfo("Current Configuration", 
-                          "Realtime Recommendation preset is already configured.\n"
-                          "This is the current default configuration.")
+        self.update_status("Applied Unified Gateway - Realtime Recommendation preset configuration")
+        messagebox.showinfo("Preset Applied", 
+                          "Unified Gateway - Realtime Recommendation preset applied!\n\n"
+                          "⚠️ Note: You still need to set your Authorization Token\n"
+                          "The preset has configured all other required headers and parameters.")
+    
+    def apply_homepage_preset(self):
+        """Apply the Consumer Mobile BFF - Homepage preset configuration"""
+        # Configuration based on the homepage curl command provided
+        homepage_config = {
+            'API_BASE_URL': 'https://consumer-mobile-bff.doordash.com',
+            'API_ENDPOINT_PATH': '/v3/feed/homepage',
+            'EXPERIENCE_ID': 'doordash',
+            'USER_AGENT': 'DoorDashConsumer/Android 16.0.0-prod-debug',
+            'CLIENT_VERSION': 'android v16.0.0-prod-debug b16000009',
+            'ACCEPT_LANGUAGE': 'en-US',
+            'USER_LOCALE': 'en-US',
+            'LATITUDE': '34.0282903',
+            'LONGITUDE': '-118.373421',
+            'SUBMARKET_ID': '1',
+            'DISTRICT_ID': '3',
+            'FACETS_VERSION': '4.0.0',
+            'FACETS_FEATURE_STORE': 'treatmentVariant3',
+            'BFF_ERROR_FORMAT': 'v2',
+            'SUPPORT_PARTNER_DASHPASS': 'true',
+            'SESSION_ID': '88d4f03e-14d2-44bb-a1e0-084db5d7bd0f-dd-and',
+            'CLIENT_REQUEST_ID': '0b7956f5-3b04-4fcc-bf13-5f83916d5ad7-dd-and',
+            'CORRELATION_ID': '348fce35-5953-415e-a0bf-02394a8a6cd7-dd-and',
+            'DD_LOCATION_CONTEXT': 'eyJsYXQiOjM0LjAyODI5MDMsImxuZyI6LTExOC4zNzM0MjEsIm1hcmtldF9pZCI6IjIiLCJzdWJtYXJrZXRfaWQiOiIxIiwiZGlzdHJpY3RfaWQiOiIzIiwidGltZXpvbmUiOiJBbWVyaWNhL0xvc19BbmdlbGVzIiwiemlwY29kZSI6IjkwMDE2IiwiY291bnRyeV9zaG9ydF9uYW1lIjoiVVMiLCJjaXR5IjoiTG9zIEFuZ2VsZXMiLCJzdGF0ZSI6IkNBIiwiY29uc3VtZXJfYWRkcmVzc19saW5rX2lkIjoiMTQ1NTEyMzQxMiIsImFkZHJlc3NfaWQiOiIzNDUyMzM0MjkiLCJpc19ndWVzdF9jb25zdW1lciI6ZmFsc2V9',
+            'DD_IDS': '{"dd_device_id":"78158b794698adba","dd_delivery_correlation_id":"6823d337-a3cf-4072-81b3-aa6fcba69b8d","dd_login_id":"lx_d16f81d2-773c-4f06-9997-b0de82bfbf32","dd_session_id":"sx_eb41331c-72f7-4b26-bba4-1e58f7ba6566","dd_android_id":"78158b794698adba","dd_android_advertising_id":"29804a87-b1f8-4db9-be15-a25ec4606c91"}',
+            'COOKIE': '__cf_bm=DIupgxWsFkASAiujjiTT2MT3ur4TChDFCiT_wEhxM0k-1754597899-1.0.1.1-Pq13lqhelrTdfq3KP0bH2WIPROBGaoqZ4xsLnORM14sHGeP9WeNJHYnioQCpI9RUr1tAssqTfXIGS8NNIE1Zv_QpGiGnSPGrHkh86fGk3qc; dd_country_shortname=US; dd_market_id=2',
+            'REALTIME_EVENTS': '[{"action_type":"store_visit","entity_id":"4932","timestamp":"2025-08-07 12:47:57"}]',
+            'DEFAULT_VERBOSE': 'true',
+            'MAX_VERBOSE_LINES': '100'
+        }
+        
+        # Update config dictionary
+        for key, value in homepage_config.items():
+            self.config[key] = value
+            
+        # Update GUI variables
+        for key, value in homepage_config.items():
+            if key in self.config_vars:
+                self.config_vars[key].set(value)
+        
+        # Close the preset dialog
+        for widget in self.root.winfo_children():
+            if isinstance(widget, tk.Toplevel):
+                widget.destroy()
+                break
+        
+        self.update_warning_banner()
+        self.update_status("Applied Consumer Mobile BFF - Homepage preset configuration")
+        messagebox.showinfo("Preset Applied", 
+                          "Consumer Mobile BFF - Homepage preset applied!\n\n"
+                          "⚠️ Note: You still need to set your Authorization Token\n"
+                          "The preset has configured all other required headers and parameters.")
 
 def main():
     """Main function to run the GUI application"""
