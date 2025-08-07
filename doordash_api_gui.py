@@ -55,8 +55,11 @@ class DoorDashAPIGUI:
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
+        # Warning/Error banner at the top
+        self.create_warning_banner(main_frame)
+        
         # Title
-        title_label = ttk.Label(main_frame, text="🚀 DoorDash API Tester", 
+        title_label = ttk.Label(main_frame, text="🚀 DoorDash API Tester & Configuration Manager", 
                                font=('Arial', 16, 'bold'))
         title_label.pack(pady=(0, 10))
         
@@ -71,6 +74,64 @@ class DoorDashAPIGUI:
         
         # Status bar
         self.create_status_bar(main_frame)
+        
+    def create_warning_banner(self, parent):
+        """Create a warning/error banner at the top of the main window"""
+        self.warning_frame = ttk.Frame(parent)
+        self.warning_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # This will be updated based on application state
+        self.warning_label = None
+        self.update_warning_banner()
+        
+    def update_warning_banner(self):
+        """Update the warning banner based on current application state"""
+        # Clear existing warning label
+        if self.warning_label:
+            self.warning_label.destroy()
+            
+        # Check for various warning conditions
+        warnings = []
+        
+        # Check authorization token
+        if not self.config.get('AUTHORIZATION_TOKEN') or self.config.get('AUTHORIZATION_TOKEN') == 'null':
+            warnings.append("⚠️ Authorization token not set - Click 'Set Auth Token' or configure in API Settings tab")
+        
+        # Check for required configuration
+        if not self.config.get('API_HOST'):
+            warnings.append("⚠️ API Host not configured")
+            
+        if not self.config.get('REALTIME_EVENTS'):
+            warnings.append("⚠️ No realtime events configured")
+        
+        # Display warnings if any exist
+        if warnings:
+            warning_text = "\n".join(warnings)
+            self.warning_label = ttk.Label(
+                self.warning_frame, 
+                text=warning_text,
+                foreground='#d9534f',  # Red color for warnings
+                font=('Arial', 10, 'bold'),
+                background='#f2dede',  # Light red background
+                padding=(10, 5),
+                relief='solid',
+                borderwidth=1,
+                wraplength=800
+            )
+            self.warning_label.pack(fill=tk.X, padx=2, pady=2)
+        else:
+            # Show success message when all is configured
+            self.warning_label = ttk.Label(
+                self.warning_frame,
+                text="✅ Configuration looks good - Ready to make API requests",
+                foreground='#5cb85c',  # Green color for success
+                font=('Arial', 10, 'bold'),
+                background='#dff0d8',  # Light green background
+                padding=(10, 5),
+                relief='solid',
+                borderwidth=1
+            )
+            self.warning_label.pack(fill=tk.X, padx=2, pady=2)
         
     def create_config_section(self, parent):
         """Create configuration editing section"""
@@ -253,6 +314,7 @@ class DoorDashAPIGUI:
                 self.config['AUTHORIZATION_TOKEN'] = token
                 self.update_status("Authorization token updated successfully")
                 self.refresh_config_display()
+                self.update_warning_banner()  # Update warning banner
                 token_dialog.destroy()
                 messagebox.showinfo("Success", "Authorization token has been set successfully!")
                 return True
@@ -281,6 +343,9 @@ class DoorDashAPIGUI:
             for key, var in self.config_vars.items():
                 if key in self.config:
                     var.set(self.config.get(key, ''))
+        
+        # Update warning banner
+        self.update_warning_banner()
         self.update_status("Configuration display refreshed")
                          
     def create_config_field(self, parent, label, key, description="", width=50, is_password=False):
@@ -861,6 +926,9 @@ class DoorDashAPIGUI:
                 else:
                     self.config[key] = value
             
+            # Update warning banner
+            self.update_warning_banner()
+            
             self.update_status("Configuration saved to memory")
             messagebox.showinfo("Configuration Saved", 
                               "Configuration has been saved to memory.\nUse 'Save to File' to persist changes.")
@@ -955,6 +1023,9 @@ class DoorDashAPIGUI:
             if hasattr(self, 'config_vars'):
                 for key, var in self.config_vars.items():
                     var.set(self.config.get(key, ''))
+            
+            # Update warning banner
+            self.update_warning_banner()
             
             self.update_status("Configuration reloaded successfully")
             messagebox.showinfo("Config Reloaded", "Configuration has been reloaded from config.env")
