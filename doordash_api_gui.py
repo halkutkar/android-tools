@@ -69,8 +69,45 @@ class DoorDashAPIGUI:
         # Request controls
         self.create_controls_section(main_frame)
         
-        # Response section
-        self.create_response_section(main_frame)
+        # Response area with tabs
+        response_frame = ttk.Frame(main_frame)
+        response_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+        
+        # Create notebook for different response views
+        self.response_notebook = ttk.Notebook(response_frame)
+        self.response_notebook.pack(fill=tk.BOTH, expand=True)
+        
+        # Request Details tab
+        self.request_tab = ttk.Frame(self.response_notebook)
+        self.response_notebook.add(self.request_tab, text="📋 Request Details")
+        
+        self.request_display = scrolledtext.ScrolledText(self.request_tab, wrap=tk.WORD, 
+                                                       font=('Consolas', 10))
+        self.request_display.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Carousel Titles tab
+        self.carousel_tab = ttk.Frame(self.response_notebook)
+        self.response_notebook.add(self.carousel_tab, text="🎠 Carousel Titles")
+        
+        self.response_display = scrolledtext.ScrolledText(self.carousel_tab, wrap=tk.WORD, 
+                                                        font=('Consolas', 10))
+        self.response_display.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Response Summary tab
+        self.summary_tab = ttk.Frame(self.response_notebook)
+        self.response_notebook.add(self.summary_tab, text="📊 Response Summary")
+        
+        self.summary_display = scrolledtext.ScrolledText(self.summary_tab, wrap=tk.WORD, 
+                                                       font=('Consolas', 10))
+        self.summary_display.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Raw Response tab
+        self.raw_tab = ttk.Frame(self.response_notebook)
+        self.response_notebook.add(self.raw_tab, text="🔍 Raw Response")
+        
+        self.raw_display = scrolledtext.ScrolledText(self.raw_tab, wrap=tk.WORD, 
+                                                   font=('Consolas', 10))
+        self.raw_display.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Status bar
         self.create_status_bar(main_frame)
@@ -166,78 +203,27 @@ class DoorDashAPIGUI:
                   command=self.save_to_file).pack(side=tk.LEFT, padx=(10, 0))
                 
     def create_controls_section(self, parent):
-        """Create request controls section"""
-        controls_frame = ttk.LabelFrame(parent, text="🎯 Request Controls", padding=10)
-        controls_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        # Options frame
-        options_frame = ttk.Frame(controls_frame)
-        options_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        # Verbose mode checkbox
-        self.verbose_var = tk.BooleanVar(value=True)  # Default to True for detailed response
-        ttk.Checkbutton(options_frame, text="Show detailed response", 
-                       variable=self.verbose_var).pack(side=tk.LEFT)
-        
-        # Auto-parse checkbox
-        self.auto_parse_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(options_frame, text="Auto-parse carousel titles", 
-                       variable=self.auto_parse_var).pack(side=tk.LEFT, padx=(20, 0))
-        
-        # Buttons frame
-        buttons_frame = ttk.Frame(controls_frame)
-        buttons_frame.pack(fill=tk.X)
+        """Create the control buttons section"""
+        controls_frame = ttk.Frame(parent)
+        controls_frame.pack(fill=tk.X, pady=10)
         
         # Make Request button
-        self.request_button = ttk.Button(buttons_frame, text="🚀 Make API Request", 
-                                       command=self.make_request_threaded,
-                                       style='Accent.TButton')
-        self.request_button.pack(side=tk.LEFT)
+        self.make_request_btn = ttk.Button(controls_frame, text="🚀 Make Request", 
+                                         command=self.make_request_threaded, style='Accent.TButton')
+        self.make_request_btn.pack(side=tk.LEFT, padx=(0, 10))
         
-        # Clear button
-        ttk.Button(buttons_frame, text="🗑️ Clear Response", 
-                  command=self.clear_response).pack(side=tk.LEFT, padx=(10, 0))
+        # Clear Response button
+        ttk.Button(controls_frame, text="🧹 Clear Response", 
+                  command=self.clear_response).pack(side=tk.LEFT, padx=(0, 10))
         
-        # Reload config button
-        ttk.Button(buttons_frame, text="🔄 Reload from File", 
-                  command=self.reload_config).pack(side=tk.LEFT, padx=(10, 0))
+        # Verbose mode checkbox
+        self.verbose_var = tk.BooleanVar(value=True)  # Default to verbose mode
+        ttk.Checkbutton(controls_frame, text="Verbose Output", 
+                       variable=self.verbose_var).pack(side=tk.LEFT, padx=(0, 10))
         
-        # Progress bar
-        self.progress = ttk.Progressbar(buttons_frame, mode='indeterminate')
-        self.progress.pack(side=tk.RIGHT, padx=(10, 0))
-        
-    def create_response_section(self, parent):
-        """Create response display section"""
-        response_frame = ttk.LabelFrame(parent, text="📊 API Response", padding=10)
-        response_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
-        
-        # Create notebook for tabs
-        self.notebook = ttk.Notebook(response_frame)
-        self.notebook.pack(fill=tk.BOTH, expand=True)
-        
-        # Summary tab
-        self.summary_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.summary_frame, text="📈 Summary")
-        
-        self.summary_text = scrolledtext.ScrolledText(self.summary_frame, height=10, 
-                                                     font=('Monaco', 10))
-        self.summary_text.pack(fill=tk.BOTH, expand=True)
-        
-        # Raw response tab
-        self.raw_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.raw_frame, text="📋 Raw Response")
-        
-        self.raw_text = scrolledtext.ScrolledText(self.raw_frame, height=10, 
-                                                 font=('Monaco', 9))
-        self.raw_text.pack(fill=tk.BOTH, expand=True)
-        
-        # Carousel titles tab
-        self.carousel_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.carousel_frame, text="🎠 Carousel Titles")
-        
-        self.carousel_text = scrolledtext.ScrolledText(self.carousel_frame, height=10, 
-                                                      font=('Arial', 10))
-        self.carousel_text.pack(fill=tk.BOTH, expand=True)
+        # Set Token button
+        ttk.Button(controls_frame, text="🔑 Set Auth Token", 
+                  command=self.set_auth_token).pack(side=tk.RIGHT)
         
     def create_status_bar(self, parent):
         """Create status bar"""
@@ -600,34 +586,43 @@ class DoorDashAPIGUI:
             return
             
         self.is_loading = True
-        self.request_button.config(state='disabled')
-        self.progress.start()
+        self.make_request_btn.config(state='disabled')
+        # self.progress.start() # Removed progress bar as per new_code
         
         thread = threading.Thread(target=self.make_request)
         thread.daemon = True
         thread.start()
         
     def make_request(self):
-        """Make the actual API request"""
+        """Make the API request and display response"""
         try:
-            self.update_status("Preparing API request...")
+            # Validate auth token
+            self.validate_auth_token()
             
-            # Save current GUI configuration to memory first
-            if hasattr(self, 'config_vars'):
-                for key, var in self.config_vars.items():
-                    value = var.get().strip()
-                    if value.lower() == 'null' or value == '':
-                        self.config[key] = None if value.lower() == 'null' else ''
-                    else:
-                        self.config[key] = value
+            # Prepare URL with query parameters
+            url = f"{self.config.get('API_BASE_URL', '')}{self.config.get('API_ENDPOINT_PATH', '')}"
+            params = {
+                "common_fields.lat": self.config.get("LATITUDE", ""),
+                "common_fields.lng": self.config.get("LONGITUDE", ""),
+                "common_fields.submarket_id": self.config.get("SUBMARKET_ID", ""),
+                "common_fields.district_id": self.config.get("DISTRICT_ID", "")
+            }
+            
+            # Add next_page_cursor if it exists in realtime events
+            realtime_events = self.config.get("REALTIME_EVENTS", "")
+            if "next_page_cursor" in realtime_events:
+                try:
+                    import re
+                    cursor_match = re.search(r'next_page_cursor=([^&]+)', realtime_events)
+                    if cursor_match:
+                        params["next_page_cursor"] = cursor_match.group(1)
+                except:
+                    pass
             
             # Prepare headers
             headers = {
-                "Host": self.config.get("API_HOST", ""),
+                "Host": self.config.get('API_BASE_URL', '').replace('https://', '').replace('http://', ''),
                 "Cookie": self.config.get("COOKIE", ""),
-                "x-facets-version": self.config.get("FACETS_VERSION", ""),
-                "x-facets-feature-store-cell-redesign-round-3": self.config.get("FACETS_FEATURE_STORE", ""),
-                "x-realtime-recommendation-events": self.config.get("REALTIME_EVENTS", ""),
                 "authorization": f"JWT {self.config.get('AUTHORIZATION_TOKEN', '')}",
                 "accept-language": self.config.get("ACCEPT_LANGUAGE", ""),
                 "x-session-id": self.config.get("SESSION_ID", ""),
@@ -640,69 +635,146 @@ class DoorDashAPIGUI:
                 "dd-ids": self.config.get("DD_IDS", ""),
                 "dd-user-locale": self.config.get("USER_LOCALE", ""),
                 "x-bff-error-format": self.config.get("BFF_ERROR_FORMAT", ""),
-                "dd-location-context": self.config.get("DD_LOCATION_CONTEXT", "")
+                "dd-location-context": self.config.get("DD_LOCATION_CONTEXT", ""),
+                "x-realtime-recommendation-events": self.config.get("REALTIME_EVENTS", ""),
+                "x-facets-version": self.config.get("FACETS_VERSION", ""),
+                "x-facets-feature-store": self.config.get("FACETS_FEATURE_STORE", "")
             }
             
-            # Prepare URL with query parameters
-            url = f"{self.config.get('API_BASE_URL', '')}{self.config.get('API_ENDPOINT_PATH', '')}"
-            params = {
-                "common_fields.lat": self.config.get("LATITUDE", ""),
-                "common_fields.lng": self.config.get("LONGITUDE", ""),
-                "common_fields.submarket_id": self.config.get("SUBMARKET_ID", ""),
-                "common_fields.district_id": self.config.get("DISTRICT_ID", "")
-            }
+            # Remove empty headers
+            headers = {k: v for k, v in headers.items() if v}
             
-            self.update_status("Making API request...")
+            # Show request details
+            self.show_request_details(url, params, headers)
             
             # Make the request
-            response = requests.get(url, headers=headers, params=params, timeout=30)
+            self.update_status("Making API request...")
+            response = requests.get(url, params=params, headers=headers, timeout=30)
             
-            # Process response
-            self.root.after(0, self.process_response, response)
+            # Process the response
+            self.process_response(response)
             
         except Exception as e:
-            self.root.after(0, self.handle_error, str(e))
+            self.handle_request_error(e)
             
+    def show_request_details(self, url, params, headers):
+        """Display the complete request details in the Request Details tab"""
+        self.request_display.delete('1.0', tk.END)
+        
+        # Build complete URL with parameters
+        import urllib.parse
+        if params:
+            query_string = urllib.parse.urlencode(params)
+            full_url = f"{url}?{query_string}"
+        else:
+            full_url = url
+        
+        # Format request details
+        request_details = f"""🚀 API REQUEST DETAILS
+{'=' * 50}
+
+📍 REQUEST URL:
+{full_url}
+
+🔗 BASE URL: {self.config.get('API_BASE_URL', '')}
+📂 ENDPOINT: {self.config.get('API_ENDPOINT_PATH', '')}
+
+📋 QUERY PARAMETERS:
+"""
+        
+        if params:
+            for key, value in params.items():
+                request_details += f"  • {key}: {value}\n"
+        else:
+            request_details += "  (No query parameters)\n"
+        
+        request_details += f"""
+🔐 REQUEST HEADERS:
+"""
+        
+        if headers:
+            for key, value in headers.items():
+                # Truncate very long values for readability
+                display_value = value
+                if len(str(value)) > 100:
+                    display_value = f"{str(value)[:97]}..."
+                request_details += f"  • {key}: {display_value}\n"
+        else:
+            request_details += "  (No headers)\n"
+        
+        request_details += f"""
+⚙️ REQUEST METHOD: GET
+🕒 TIMEOUT: 30 seconds
+📦 REQUEST BODY: (None for GET request)
+
+{'=' * 50}
+ℹ️  This request will be sent to the DoorDash API
+"""
+        
+        self.request_display.insert(tk.END, request_details)
+        
+        # Set the Request Details tab as active to show the request
+        self.response_notebook.select(self.request_tab)
+        
     def process_response(self, response):
         """Process and display the API response"""
         try:
-            self.update_status(f"Processing response (Status: {response.status_code})...")
+            self.update_status(f"Response received: {response.status_code}")
             
-            # Clear previous content
-            self.clear_response()
+            # Clear previous responses
+            self.response_display.delete('1.0', tk.END)
+            self.summary_display.delete('1.0', tk.END)
+            self.raw_display.delete('1.0', tk.END)
             
-            # Display summary
-            summary = self.create_summary(response)
-            self.summary_text.insert(tk.END, summary)
-            
-            # Display raw response with pretty printing
+            # Parse JSON response
             try:
-                # Try to parse and pretty print JSON
-                json_data = response.json()
-                formatted_json = json.dumps(json_data, indent=2, ensure_ascii=False)
-                self.raw_text.insert(tk.END, formatted_json)
-            except json.JSONDecodeError:
-                # If not valid JSON, show raw text
-                self.raw_text.insert(tk.END, "Response is not valid JSON. Raw content:\n\n")
-                self.raw_text.insert(tk.END, response.text)
-            except Exception as e:
-                # Fallback for any other errors
-                self.raw_text.insert(tk.END, f"Error formatting response: {str(e)}\n\n")
-                self.raw_text.insert(tk.END, response.text)
-                
-            # Parse and display carousel titles
-            if self.auto_parse_var.get():
-                carousels = self.extract_carousel_titles(response)
-                self.display_carousels(carousels)
-                
-            self.update_status(f"Request completed successfully (Status: {response.status_code})")
+                response_json = response.json()
+            except:
+                response_json = None
+            
+            # Extract carousel titles
+            carousel_titles = self.extract_carousel_titles(response_json) if response_json else []
+            
+            # Display carousel titles
+            if carousel_titles:
+                titles_text = f"🎠 CAROUSEL TITLES FOUND ({len(carousel_titles)} items):\n{'=' * 50}\n\n"
+                for i, title in enumerate(carousel_titles, 1):
+                    titles_text += f"{i:2d}. {title}\n"
+                titles_text += f"\n{'=' * 50}\n✅ Successfully extracted {len(carousel_titles)} carousel titles"
+            else:
+                titles_text = "🎠 CAROUSEL TITLES:\n" + "=" * 50 + "\n\n❌ No carousel titles found in response"
+            
+            self.response_display.insert(tk.END, titles_text)
+            
+            # Display response summary
+            summary = self.create_summary(response)
+            self.summary_display.insert(tk.END, summary)
+            
+            # Display raw response
+            if response_json:
+                try:
+                    import json
+                    pretty_json = json.dumps(response_json, indent=2, ensure_ascii=False)
+                    self.raw_display.insert(tk.END, pretty_json)
+                except:
+                    self.raw_display.insert(tk.END, response.text)
+            else:
+                self.raw_display.insert(tk.END, response.text)
+            
+            # Switch to the carousel titles tab to show results
+            self.response_notebook.select(self.carousel_tab)
+            
+            self.update_status(f"✅ Request completed successfully - {len(carousel_titles)} carousel titles found")
             
         except Exception as e:
-            self.handle_error(f"Error processing response: {str(e)}")
+            error_msg = f"❌ Error processing response: {str(e)}"
+            self.update_status(error_msg)
+            self.response_display.delete('1.0', tk.END)
+            self.response_display.insert(tk.END, error_msg)
         finally:
             self.is_loading = False
-            self.request_button.config(state='normal')
-            self.progress.stop()
+            self.make_request_btn.config(state='normal')
+            # self.progress.stop() # Removed progress bar as per new_code
             
     def create_summary(self, response):
         """Create response summary"""
@@ -753,18 +825,22 @@ class DoorDashAPIGUI:
         summary += f"\n{'='*50}\n"
         return summary
         
-    def extract_carousel_titles(self, response):
+    def extract_carousel_titles(self, data):
         """Extract carousel titles from specific carousel components only"""
         carousels = []
         try:
-            if response.status_code == 200:
+            if data:
                 # Try JSON parsing first
                 try:
-                    data = response.json()
-                    carousels = self.find_specific_carousel_titles(data)
+                    # Find all carousel.standard components
+                    for item in data.get('data', {}).get('items', []):
+                        if self.is_target_carousel(item):
+                            title = self.extract_title_from_carousel(item)
+                            if title and title not in carousels:
+                                carousels.append(title)
                 except:
                     # Fall back to regex search for specific carousel pattern
-                    text = response.text
+                    text = json.dumps(data, indent=2, ensure_ascii=False) # Pretty print JSON for regex
                     carousels = self.extract_carousel_titles_regex(text)
         except Exception as e:
             carousels = [f"Error extracting carousels: {str(e)}"]
@@ -772,7 +848,7 @@ class DoorDashAPIGUI:
         return carousels
         
     def find_specific_carousel_titles(self, data, carousels=None):
-        """Find titles specifically from carousel.standard components"""
+        """Find titles specifically from carousel.standard components only"""
         if carousels is None:
             carousels = []
             
@@ -794,41 +870,19 @@ class DoorDashAPIGUI:
         return carousels
         
     def is_target_carousel(self, item):
-        """Check if item is a target carousel component"""
-        if not isinstance(item, dict):
-            return False
-            
-        # Check for carousel.standard component
-        component = item.get('component', {})
-        if not isinstance(component, dict):
-            return False
-            
-        component_id = component.get('id', '')
-        category = component.get('category', '')
-        
-        # Look for carousel.standard components
-        return (component_id == 'carousel.standard' and 
-                category == 'carousel')
-    
-    def extract_title_from_carousel(self, carousel_item):
-        """Extract title from a carousel item"""
+        """Check if item is a target carousel.standard component"""
         try:
-            # Look for text.title in the carousel structure
-            text_obj = carousel_item.get('text', {})
-            if isinstance(text_obj, dict):
-                title = text_obj.get('title', '')
-                if title and isinstance(title, str):
-                    return title.strip()
-                    
-            # Alternative path: look for title in other locations
-            title = carousel_item.get('title', '')
-            if title and isinstance(title, str):
-                return title.strip()
-                
-        except Exception:
-            pass
+            return (item.get('id', '').startswith('carousel.standard:') and 
+                    item.get('component', {}).get('id') == 'carousel.standard')
+        except:
+            return False
             
-        return None
+    def extract_title_from_carousel(self, item):
+        """Extract title from carousel component"""
+        try:
+            return item.get('text', {}).get('title', '')
+        except:
+            return ''
         
     def extract_carousel_titles_regex(self, text):
         """Extract carousel titles using regex as fallback"""
@@ -900,43 +954,30 @@ class DoorDashAPIGUI:
             
         return False
         
-    def display_carousels(self, carousels):
-        """Display carousel titles in the carousel tab"""
-        content = f"🎠 CAROUSEL TITLES FROM carousel.standard COMPONENTS\n{'='*60}\n\n"
-        content += "Extracting titles specifically from:\n"
-        content += "• component.id = 'carousel.standard'\n"
-        content += "• component.category = 'carousel'\n"
-        content += "• text.title field\n\n"
-        content += f"{'='*60}\n\n"
+    def handle_request_error(self, error):
+        """Handle errors that occur during the request"""
+        error_message = f"❌ Request failed: {str(error)}"
         
-        if carousels:
-            content += f"✅ Found {len(carousels)} carousel title(s):\n\n"
-            for i, carousel in enumerate(carousels, 1):
-                content += f"  {i:2d}. {carousel}\n"
-            content += f"\n📊 Total carousel titles extracted: {len(carousels)}\n"
-        else:
-            content += "❌ No carousel.standard titles found in response\n"
-            content += "\nPossible reasons:\n"
-            content += "• No carousel.standard components in response\n"
-            content += "• Carousel components don't have text.title fields\n"
-            content += "• Response structure may be different than expected\n"
-            
-        content += f"\n{'='*60}\n"
-        self.carousel_text.insert(tk.END, content)
+        # Clear displays and show error
+        self.clear_response()
+        self.response_display.insert(tk.END, error_message)
+        self.summary_display.insert(tk.END, f"ERROR:\n{error_message}")
         
-    def handle_error(self, error_message):
-        """Handle and display errors"""
-        self.update_status(f"Error: {error_message}")
+        # Switch to carousel tab to show error
+        self.response_notebook.select(self.carousel_tab)
+        
+        self.update_status(error_message)
         messagebox.showerror("Request Error", error_message)
         self.is_loading = False
-        self.request_button.config(state='normal')
-        self.progress.stop()
+        self.make_request_btn.config(state='normal')
         
     def clear_response(self):
         """Clear all response displays"""
-        self.summary_text.delete(1.0, tk.END)
-        self.raw_text.delete(1.0, tk.END)
-        self.carousel_text.delete(1.0, tk.END)
+        self.request_display.delete('1.0', tk.END)
+        self.response_display.delete('1.0', tk.END)
+        self.summary_display.delete('1.0', tk.END)
+        self.raw_display.delete('1.0', tk.END)
+        self.update_status("Response cleared")
         
     def save_configuration(self):
         """Save configuration changes to memory"""
