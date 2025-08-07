@@ -238,92 +238,98 @@ class DoorDashAPIGUI:
         self.root.update_idletasks()
         
     def validate_auth_token(self):
-        """Validate that auth token is set"""
-        if not self.config.get('AUTHORIZATION_TOKEN'):
-            result = messagebox.askyesno(
-                "Authorization Token Required", 
-                "Authorization token is not set. Would you like to set it now?"
-            )
-            if result:
-                return self.set_auth_token()
-            else:
-                return False
-        return True
-        
+        """Validate that authorization token is set"""
+        token = self.config.get('AUTHORIZATION_TOKEN', '')
+        if not token or token.lower() == 'null' or not token.strip():
+            # Show token input dialog
+            self.set_auth_token()
+            # Re-check after dialog
+            token = self.config.get('AUTHORIZATION_TOKEN', '')
+            if not token or token.lower() == 'null' or not token.strip():
+                raise Exception("Authorization token is required but not set")
+                
     def set_auth_token(self):
-        """Open dialog to set authorization token"""
-        token_dialog = tk.Toplevel(self.root)
-        token_dialog.title("Set Authorization Token")
-        token_dialog.geometry("520x320")
-        token_dialog.transient(self.root)
-        token_dialog.grab_set()
+        """Show dialog to set authorization token"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Set Authorization Token")
+        dialog.geometry("600x400")
+        dialog.transient(self.root)
+        dialog.grab_set()
         
         # Center the dialog
-        token_dialog.geometry("+%d+%d" % (
-            self.root.winfo_rootx() + 50,
-            self.root.winfo_rooty() + 50
-        ))
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (600 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (400 // 2)
+        dialog.geometry(f"600x400+{x}+{y}")
         
         # Main frame
-        main_frame = ttk.Frame(token_dialog, padding=20)
+        main_frame = ttk.Frame(dialog, padding=20)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
+        # Title
+        title_label = ttk.Label(main_frame, text="🔑 Set Authorization Token", 
+                               font=('Arial', 14, 'bold'))
+        title_label.pack(pady=(0, 20))
+        
         # Instructions
-        ttk.Label(main_frame, text="🔑 Enter JWT Authorization Token:", 
-                 font=('Arial', 12, 'bold')).pack(pady=(0, 10))
-        
-        # Context instructions
-        context_text = ("To find your JWT token:\n"
-                       "1. Open Charles Proxy and capture DoorDash API requests\n"
-                       "2. Look for the 'authorization' header in any request\n"
-                       "3. Copy ONLY the part after 'JWT ' (without the JWT prefix)\n\n"
-                       "Example: authorization: JWT eyJhbGciOiJIUzI1NiJ9...\n"
-                       "Copy: eyJhbGciOiJIUzI1NiJ9...")
-        
-        ttk.Label(main_frame, text=context_text, 
-                 font=('Arial', 9), wraplength=450, justify=tk.LEFT).pack(pady=(0, 15))
+        instructions = ttk.Label(main_frame, text="""🔍 To find your JWT token:
+
+1. Open Charles Proxy and capture DoorDash API requests
+2. Look for the 'authorization' header in any request  
+3. Copy ONLY the part after 'JWT ' (without the JWT prefix)
+
+Example: authorization: JWT eyJhbGciOiJIUzI1NiJ9...
+Copy: eyJhbGciOiJIUzI1NiJ9...
+
+Paste your token below (JWT prefix will be automatically removed):""", 
+                               justify=tk.LEFT, wraplength=500)
+        instructions.pack(pady=(0, 20))
         
         # Token entry
-        token_var = tk.StringVar()
-        token_entry = ttk.Entry(main_frame, textvariable=token_var, width=60)
-        token_entry.pack(pady=(0, 20), fill=tk.X)
-        token_entry.focus()
+        token_label = ttk.Label(main_frame, text="Authorization Token:")
+        token_label.pack(anchor=tk.W)
         
-        # Buttons frame
-        buttons_frame = ttk.Frame(main_frame)
-        buttons_frame.pack(fill=tk.X)
+        token_var = tk.StringVar()
+        token_entry = ttk.Entry(main_frame, textvariable=token_var, width=70, font=('Consolas', 10))
+        token_entry.pack(fill=tk.X, pady=(5, 20))
+        token_entry.focus()
         
         def save_token():
             token = token_var.get().strip()
             if token:
-                # Remove JWT prefix if present
+                # Remove JWT prefix if present and clean up
                 if token.startswith('JWT '):
+                    token = token[4:].strip()
+                elif token.startswith('jwt '):
                     token = token[4:].strip()
                 
                 self.config['AUTHORIZATION_TOKEN'] = token
-                self.update_status("Authorization token updated successfully")
-                self.refresh_config_display()
-                self.update_warning_banner()  # Update warning banner
-                token_dialog.destroy()
-                messagebox.showinfo("Success", "Authorization token has been set successfully!")
-                return True
-            else:
-                messagebox.showerror("Error", "Please enter a valid token")
-                return False
                 
+                # Update the GUI variable if it exists
+                if 'AUTHORIZATION_TOKEN' in self.config_vars:
+                    self.config_vars['AUTHORIZATION_TOKEN'].set(token)
+                
+                # Update warning banner
+                self.update_warning_banner()
+                
+                dialog.destroy()
+                messagebox.showinfo("Token Set", "✅ Authorization token has been set successfully!")
+            else:
+                messagebox.showerror("Invalid Token", "Please enter a valid authorization token.")
+        
         def cancel():
-            token_dialog.destroy()
-            return False
-            
-        ttk.Button(buttons_frame, text="✅ Save Token", command=save_token).pack(side=tk.LEFT)
-        ttk.Button(buttons_frame, text="❌ Cancel", command=cancel).pack(side=tk.LEFT, padx=(10, 0))
+            dialog.destroy()
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(20, 0))
+        
+        ttk.Button(button_frame, text="💾 Save Token", command=save_token, 
+                  style='Accent.TButton').pack(side=tk.RIGHT, padx=(10, 0))
+        ttk.Button(button_frame, text="❌ Cancel", command=cancel).pack(side=tk.RIGHT)
         
         # Bind Enter key to save
-        token_entry.bind('<Return>', lambda e: save_token())
-        
-        # Wait for dialog to close
-        token_dialog.wait_window()
-        return self.config.get('AUTHORIZATION_TOKEN') is not None
+        dialog.bind('<Return>', lambda e: save_token())
         
     def refresh_config_display(self):
         """Refresh the configuration display section"""
@@ -582,7 +588,10 @@ class DoorDashAPIGUI:
             return
             
         # Validate auth token first
-        if not self.validate_auth_token():
+        try:
+            self.validate_auth_token()
+        except Exception as e:
+            messagebox.showerror("Authorization Error", str(e))
             return
             
         self.is_loading = True
@@ -737,12 +746,28 @@ class DoorDashAPIGUI:
             
             # Display carousel titles
             if carousel_titles:
-                titles_text = f"🎠 CAROUSEL TITLES FOUND ({len(carousel_titles)} items):\n{'=' * 50}\n\n"
-                for i, title in enumerate(carousel_titles, 1):
-                    titles_text += f"{i:2d}. {title}\n"
-                titles_text += f"\n{'=' * 50}\n✅ Successfully extracted {len(carousel_titles)} carousel titles"
+                titles_text = f"🎠 STORE CAROUSEL COMPONENTS FOUND ({len(carousel_titles)} items):\n{'=' * 70}\n\n"
+                
+                for i, carousel in enumerate(carousel_titles, 1):
+                    titles_text += f"🔸 CAROUSEL #{i}\n"
+                    titles_text += f"   ID: {carousel['id']}\n"
+                    titles_text += f"   Component: {carousel['component_id']} ({carousel['component_category']})\n"
+                    titles_text += f"   Text Fields:\n"
+                    
+                    for field_name, field_value in carousel['text_fields'].items():
+                        titles_text += f"     • {field_name}: {field_value}\n"
+                    
+                    titles_text += "\n"
+                
+                titles_text += f"{'=' * 70}\n✅ Successfully extracted {len(carousel_titles)} store carousel components"
             else:
-                titles_text = "🎠 CAROUSEL TITLES:\n" + "=" * 50 + "\n\n❌ No carousel titles found in response"
+                titles_text = "🎠 STORE CAROUSEL COMPONENTS:\n" + "=" * 70 + "\n\n"
+                titles_text += "❌ No store carousel components found in response\n\n"
+                titles_text += "Looking for components matching:\n"
+                titles_text += "• ID pattern: 'carousel.standard:store_carousel*'\n"
+                titles_text += "• Component ID: 'carousel.standard'\n"
+                titles_text += "• Component Category: 'carousel'\n"
+                titles_text += "• With text fields containing content"
             
             self.response_display.insert(tk.END, titles_text)
             
@@ -826,133 +851,156 @@ class DoorDashAPIGUI:
         return summary
         
     def extract_carousel_titles(self, data):
-        """Extract carousel titles from specific carousel components only"""
+        """Extract carousel titles from store_carousel components specifically"""
         carousels = []
         try:
             if data:
-                # Try JSON parsing first
-                try:
-                    # Find all carousel.standard components
-                    for item in data.get('data', {}).get('items', []):
-                        if self.is_target_carousel(item):
-                            title = self.extract_title_from_carousel(item)
-                            if title and title not in carousels:
-                                carousels.append(title)
-                except:
-                    # Fall back to regex search for specific carousel pattern
-                    text = json.dumps(data, indent=2, ensure_ascii=False) # Pretty print JSON for regex
-                    carousels = self.extract_carousel_titles_regex(text)
+                # Find all items in the response
+                items = data.get('data', {}).get('items', [])
+                
+                for item in items:
+                    if self.is_store_carousel(item):
+                        carousel_info = self.extract_store_carousel_info(item)
+                        if carousel_info:
+                            carousels.append(carousel_info)
+                            
         except Exception as e:
-            carousels = [f"Error extracting carousels: {str(e)}"]
+            print(f"Error extracting carousel titles: {e}")
             
         return carousels
         
-    def find_specific_carousel_titles(self, data, carousels=None):
-        """Find titles specifically from carousel.standard components only"""
-        if carousels is None:
-            carousels = []
-            
-        if isinstance(data, dict):
-            # Check if this is a carousel component we're interested in
-            if self.is_target_carousel(data):
-                title = self.extract_title_from_carousel(data)
-                if title and title not in carousels:
-                    carousels.append(title)
-            
-            # Recursively search through all values
-            for value in data.values():
-                self.find_specific_carousel_titles(value, carousels)
-                
-        elif isinstance(data, list):
-            for item in data:
-                self.find_specific_carousel_titles(item, carousels)
-                
-        return carousels
-        
-    def is_target_carousel(self, item):
-        """Check if item is a target carousel.standard component"""
+    def is_store_carousel(self, item):
+        """Check if item is a store_carousel component"""
         try:
-            return (item.get('id', '').startswith('carousel.standard:') and 
-                    item.get('component', {}).get('id') == 'carousel.standard')
+            item_id = item.get('id', '')
+            component = item.get('component', {})
+            
+            # Check for carousel.standard:store_carousel pattern
+            return (item_id.startswith('carousel.standard:store_carousel') and 
+                    component.get('id') == 'carousel.standard' and 
+                    component.get('category') == 'carousel')
         except:
             return False
             
-    def extract_title_from_carousel(self, item):
-        """Extract title from carousel component"""
+    def extract_store_carousel_info(self, item):
+        """Extract all text information from a store carousel component"""
         try:
-            return item.get('text', {}).get('title', '')
-        except:
-            return ''
-        
-    def extract_carousel_titles_regex(self, text):
-        """Extract carousel titles using regex as fallback"""
-        carousels = []
-        try:
-            # Pattern to match carousel.standard components with titles
-            # This regex looks for the specific structure you mentioned
-            pattern = r'"component":\s*{\s*"id":\s*"carousel\.standard"[^}]*}[^}]*"text":\s*{\s*"title":\s*"([^"]+)"'
-            matches = re.findall(pattern, text, re.DOTALL)
+            carousel_info = {
+                'id': item.get('id', ''),
+                'component_id': item.get('component', {}).get('id', ''),
+                'component_category': item.get('component', {}).get('category', ''),
+                'text_fields': {}
+            }
             
-            for match in matches:
-                title = match.strip()
-                if title and title not in carousels:
-                    carousels.append(title)
-                    
-            # If no matches with the specific pattern, try a simpler approach
-            # but still filter for carousel context
-            if not carousels:
-                # Look for titles that appear near carousel.standard
-                lines = text.split('\n')
-                for i, line in enumerate(lines):
-                    if 'carousel.standard' in line:
-                        # Look in nearby lines for title
-                        start = max(0, i - 5)
-                        end = min(len(lines), i + 10)
-                        context = '\n'.join(lines[start:end])
-                        
-                        title_pattern = r'"title":\s*"([^"]+)"'
-                        title_matches = re.findall(title_pattern, context)
-                        for title in title_matches:
-                            clean_title = title.strip()
-                            if clean_title and clean_title not in carousels:
-                                # Filter out logging-like content
-                                if not self.is_logging_content(clean_title):
-                                    carousels.append(clean_title)
-                                    
-        except Exception as e:
-            carousels = [f"Regex extraction error: {str(e)}"]
+            # Extract all text fields
+            text_obj = item.get('text', {})
+            if isinstance(text_obj, dict):
+                for key, value in text_obj.items():
+                    if isinstance(value, str) and value.strip():
+                        carousel_info['text_fields'][key] = value.strip()
             
-        return carousels
-        
-    def is_logging_content(self, text):
-        """Check if text appears to be logging content rather than a carousel title"""
-        if not text:
-            return True
-            
-        # Filter out common logging patterns
-        logging_indicators = [
-            'log', 'debug', 'error', 'warn', 'info',
-            'timestamp', 'level', 'trace', 'stack',
-            'exception', 'request_id', 'correlation_id',
-            'session_id', 'user_id', 'api_key'
-        ]
-        
-        text_lower = text.lower()
-        for indicator in logging_indicators:
-            if indicator in text_lower:
-                return True
+            # Only return if we have text fields
+            if carousel_info['text_fields']:
+                return carousel_info
                 
-        # Filter out texts that look like IDs or technical strings
-        if len(text) > 100:  # Very long titles are likely not carousel titles
-            return True
+        except Exception as e:
+            print(f"Error extracting carousel info: {e}")
             
-        if text.count('_') > 3:  # Too many underscores suggest technical strings
-            return True
-            
-        if text.count('-') > 5:  # Too many dashes suggest IDs
-            return True
-            
-        return False
+        return None
+        
+    def validate_auth_token(self):
+        """Validate that authorization token is set"""
+        token = self.config.get('AUTHORIZATION_TOKEN', '')
+        if not token or token.lower() == 'null' or not token.strip():
+            # Show token input dialog
+            self.set_auth_token()
+            # Re-check after dialog
+            token = self.config.get('AUTHORIZATION_TOKEN', '')
+            if not token or token.lower() == 'null' or not token.strip():
+                raise Exception("Authorization token is required but not set")
+                
+    def set_auth_token(self):
+        """Show dialog to set authorization token"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Set Authorization Token")
+        dialog.geometry("600x400")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        # Center the dialog
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (600 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (400 // 2)
+        dialog.geometry(f"600x400+{x}+{y}")
+        
+        # Main frame
+        main_frame = ttk.Frame(dialog, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text="🔑 Set Authorization Token", 
+                               font=('Arial', 14, 'bold'))
+        title_label.pack(pady=(0, 20))
+        
+        # Instructions
+        instructions = ttk.Label(main_frame, text="""🔍 To find your JWT token:
+
+1. Open Charles Proxy and capture DoorDash API requests
+2. Look for the 'authorization' header in any request  
+3. Copy ONLY the part after 'JWT ' (without the JWT prefix)
+
+Example: authorization: JWT eyJhbGciOiJIUzI1NiJ9...
+Copy: eyJhbGciOiJIUzI1NiJ9...
+
+Paste your token below (JWT prefix will be automatically removed):""", 
+                               justify=tk.LEFT, wraplength=500)
+        instructions.pack(pady=(0, 20))
+        
+        # Token entry
+        token_label = ttk.Label(main_frame, text="Authorization Token:")
+        token_label.pack(anchor=tk.W)
+        
+        token_var = tk.StringVar()
+        token_entry = ttk.Entry(main_frame, textvariable=token_var, width=70, font=('Consolas', 10))
+        token_entry.pack(fill=tk.X, pady=(5, 20))
+        token_entry.focus()
+        
+        def save_token():
+            token = token_var.get().strip()
+            if token:
+                # Remove JWT prefix if present and clean up
+                if token.startswith('JWT '):
+                    token = token[4:].strip()
+                elif token.startswith('jwt '):
+                    token = token[4:].strip()
+                
+                self.config['AUTHORIZATION_TOKEN'] = token
+                
+                # Update the GUI variable if it exists
+                if 'AUTHORIZATION_TOKEN' in self.config_vars:
+                    self.config_vars['AUTHORIZATION_TOKEN'].set(token)
+                
+                # Update warning banner
+                self.update_warning_banner()
+                
+                dialog.destroy()
+                messagebox.showinfo("Token Set", "✅ Authorization token has been set successfully!")
+            else:
+                messagebox.showerror("Invalid Token", "Please enter a valid authorization token.")
+        
+        def cancel():
+            dialog.destroy()
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(20, 0))
+        
+        ttk.Button(button_frame, text="💾 Save Token", command=save_token, 
+                  style='Accent.TButton').pack(side=tk.RIGHT, padx=(10, 0))
+        ttk.Button(button_frame, text="❌ Cancel", command=cancel).pack(side=tk.RIGHT)
+        
+        # Bind Enter key to save
+        dialog.bind('<Return>', lambda e: save_token())
         
     def handle_request_error(self, error):
         """Handle errors that occur during the request"""
