@@ -404,8 +404,9 @@ class DoorDashAPIGUI:
         # API configuration fields
         ttk.Label(scrollable_frame, text="🔌 API Connection", font=('Arial', 12, 'bold')).pack(pady=(0, 10))
         
-        self.create_config_field(scrollable_frame, "API Host", "API_HOST", 
-                               "DoorDash API hostname")
+        # API Host with preset button
+        self.create_api_host_field_with_presets(scrollable_frame)
+        
         self.create_config_field(scrollable_frame, "Experience ID", "EXPERIENCE_ID", 
                                "Application experience identifier")
         
@@ -1051,6 +1052,175 @@ class DoorDashAPIGUI:
             messagebox.showinfo("Config Reloaded", "Configuration has been reloaded from config.env")
         except Exception as e:
             messagebox.showerror("Config Error", f"Failed to reload config: {str(e)}")
+
+    def create_api_host_field_with_presets(self, parent):
+        """Create API Host field with presets button"""
+        frame = ttk.Frame(parent)
+        frame.pack(fill=tk.X, pady=2)
+        
+        # Label
+        label_widget = ttk.Label(frame, text="API Host:", font=('Arial', 9, 'bold'), width=20)
+        label_widget.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Clean JWT prefix if this is an authorization token field
+        initial_value = self.config.get('API_HOST', '')
+        
+        # Entry variable
+        var = tk.StringVar(value=initial_value)
+        self.config_vars['API_HOST'] = var
+        
+        # Entry widget
+        entry = ttk.Entry(frame, textvariable=var, width=50)
+        entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+        
+        # Presets button
+        ttk.Button(frame, text="🔧 API Presets", command=self.open_api_presets_modal).pack(side=tk.LEFT)
+        
+        # Description label
+        desc_label = ttk.Label(frame, text="DoorDash API hostname", font=('Arial', 8), 
+                             foreground='gray')
+        desc_label.pack(side=tk.RIGHT)
+        
+    def open_api_presets_modal(self):
+        """Open modal with API configuration presets"""
+        preset_dialog = tk.Toplevel(self.root)
+        preset_dialog.title("API Configuration Presets")
+        preset_dialog.geometry("800x600")
+        preset_dialog.transient(self.root)
+        preset_dialog.grab_set()
+        
+        # Center the dialog
+        preset_dialog.geometry("+%d+%d" % (
+            self.root.winfo_rootx() + 100,
+            self.root.winfo_rooty() + 50
+        ))
+        
+        # Main frame with scrolling
+        main_frame = ttk.Frame(preset_dialog, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Title
+        ttk.Label(main_frame, text="🔧 API Configuration Presets", 
+                 font=('Arial', 14, 'bold')).pack(pady=(0, 20))
+        
+        # Description
+        desc_text = ("Select a preset configuration to automatically populate the API settings.\n"
+                    "This will update multiple configuration fields based on the selected endpoint.")
+        ttk.Label(main_frame, text=desc_text, wraplength=750, justify=tk.CENTER).pack(pady=(0, 20))
+        
+        # Presets frame
+        presets_frame = ttk.Frame(main_frame)
+        presets_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Feed Me API Preset
+        self.create_preset_option(presets_frame, 
+            "📱 Consumer Mobile BFF - Feed Me",
+            "consumer-mobile-bff.doordash.com/v3/feed/me",
+            "Primary consumer feed endpoint with full feature flags",
+            self.apply_feed_me_preset
+        )
+        
+        # Realtime Recommendation Preset (current)
+        self.create_preset_option(presets_frame,
+            "🎯 Unified Gateway - Realtime Recommendation", 
+            "unified-gateway.doordash.com/cx/v3/feed/realtime_recommendation",
+            "Current realtime recommendation endpoint (already configured)",
+            self.apply_realtime_preset
+        )
+        
+        # Custom preset
+        self.create_preset_option(presets_frame,
+            "⚙️ Custom Configuration",
+            "Manually configure all settings",
+            "Keep current configuration and close modal",
+            lambda: preset_dialog.destroy()
+        )
+        
+        # Buttons frame
+        buttons_frame = ttk.Frame(main_frame)
+        buttons_frame.pack(fill=tk.X, pady=(20, 0))
+        
+        ttk.Button(buttons_frame, text="❌ Cancel", command=preset_dialog.destroy).pack(side=tk.RIGHT)
+        
+    def create_preset_option(self, parent, title, endpoint, description, command):
+        """Create a preset option button with description"""
+        option_frame = ttk.LabelFrame(parent, text=title, padding=15)
+        option_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        # Endpoint info
+        ttk.Label(option_frame, text=f"Endpoint: {endpoint}", 
+                 font=('Monaco', 9), foreground='blue').pack(anchor=tk.W, pady=(0, 5))
+        
+        # Description
+        ttk.Label(option_frame, text=description, wraplength=700).pack(anchor=tk.W, pady=(0, 10))
+        
+        # Apply button
+        ttk.Button(option_frame, text="🚀 Apply This Configuration", 
+                  command=command).pack(side=tk.LEFT)
+
+    def apply_feed_me_preset(self):
+        """Apply the Feed Me preset configuration based on the provided curl command"""
+        # Configuration based on the curl command provided
+        feed_me_config = {
+            'API_HOST': 'consumer-mobile-bff.doordash.com',
+            'EXPERIENCE_ID': 'doordash',
+            'USER_AGENT': 'DoordashConsumer/7.32.0 (iPhone; iOS 18.5; Scale/3.0)',
+            'CLIENT_VERSION': 'ios v7.32.0 b309062.250806',
+            'ACCEPT_LANGUAGE': 'en-US',
+            'USER_LOCALE': 'en-US',
+            'LATITUDE': '34.0282903',
+            'LONGITUDE': '-118.373421',
+            'SUBMARKET_ID': '1',
+            'DISTRICT_ID': '3',
+            'FACETS_VERSION': '6.0.0',
+            'FACETS_FEATURE_STORE': 'treatmentVariant3',
+            'BFF_ERROR_FORMAT': 'v2',
+            'SUPPORT_PARTNER_DASHPASS': 'true',
+            'SESSION_ID': '7DCCF941-573F-4DB5-BABF-4DD06ADFC539-cx-ios',
+            'CLIENT_REQUEST_ID': '0D4ED886-7FD9-47BA-BBD7-A31C9127B600-cx-ios',
+            'CORRELATION_ID': 'FE22D422-E4BC-4040-94EB-096986CEAB16-cx-ios',
+            'DD_LOCATION_CONTEXT': 'eyJhZGRyZXNzX2lkIjoiMzQ1MjMzNDI5IiwiY2l0eSI6IkxvcyBBbmdlbGVzIiwiY29uc3VtZXJfYWRkcmVzc19saW5rX2lkIjoiMTQ1NTEyMzQxMiIsImNvdW50cnlfc2hvcnRfbmFtZSI6IlVTIiwiZGlzdHJpY3RfaWQiOiIzIiwiaXNfZ3Vlc3RfY29uc3VtZXIiOmZhbHNlLCJsYXQiOjM0LjAyODI5MDMsImxuZyI6LTExOC4zNzM0MjEsIm1hcmtldF9pZCI6IjIiLCJzdGF0ZSI6IkNBIiwic3VibWFya2V0X2lkIjoiMSIsInRpbWV6b25lIjoiQW1lcmljYVwvTG9zX0FuZ2VsZXMiLCJ6aXBjb2RlIjoiOTAwMTYifQ==',
+            'DD_IDS': '{"dd_ios_idfv_id":"175409C4-E708-4493-B972-48EFE9668407","dd_ios_idfa_id":"00000000-0000-0000-0000-000000000000","dd_login_id":"lx_5451FB95-9C62-407B-9484-EA771FB317E2","dd_device_id":"dx_175409C4-E708-4493-B972-48EFE9668407","dd_delivery_correlation_id":"d63366d8-ae15-4820-ac43-d570b318dc98","dd_session_id":"sx_71A0763A-EB00-4FEE-A3E1-DE1C15F69892"}',
+            'COOKIE': 'dd_session_id=sx_71A0763A-EB00-4FEE-A3E1-DE1C15F69892; dd_request_id=0D4ED886-7FD9-47BA-BBD7-A31C9127B600-cx-ios',
+            'REALTIME_EVENTS': '[]',  # Feed Me doesn't use realtime events
+            'DEFAULT_VERBOSE': 'true',
+            'MAX_VERBOSE_LINES': '100'
+        }
+        
+        # Update config dictionary
+        for key, value in feed_me_config.items():
+            self.config[key] = value
+            
+        # Update GUI variables
+        for key, value in feed_me_config.items():
+            if key in self.config_vars:
+                self.config_vars[key].set(value)
+        
+        # Close the preset dialog
+        for widget in self.root.winfo_children():
+            if isinstance(widget, tk.Toplevel):
+                widget.destroy()
+                break
+        
+        self.update_warning_banner()
+        self.update_status("Applied Feed Me preset configuration")
+        messagebox.showinfo("Preset Applied", 
+                          "Feed Me preset configuration applied!\n\n"
+                          "⚠️ Note: You still need to set your Authorization Token\n"
+                          "The preset has configured all other required headers and parameters.")
+    
+    def apply_realtime_preset(self):
+        """Apply the Realtime Recommendation preset (current configuration)"""
+        # Close the preset dialog
+        for widget in self.root.winfo_children():
+            if isinstance(widget, tk.Toplevel):
+                widget.destroy()
+                break
+                
+        self.update_warning_banner()
+        messagebox.showinfo("Current Configuration", 
+                          "Realtime Recommendation preset is already configured.\n"
+                          "This is the current default configuration.")
 
 def main():
     """Main function to run the GUI application"""
