@@ -851,23 +851,35 @@ Paste your token below (JWT prefix will be automatically removed):""",
         return summary
         
     def extract_carousel_titles(self, data):
-        """Extract carousel titles from store_carousel components specifically"""
+        """Extract carousel titles from store_carousel components in nested JSON structure"""
         carousels = []
         try:
             if data:
-                # Find all items in the response
-                items = data.get('data', {}).get('items', [])
-                
-                for item in items:
-                    if self.is_store_carousel(item):
-                        carousel_info = self.extract_store_carousel_info(item)
-                        if carousel_info:
-                            carousels.append(carousel_info)
+                # Recursively search through the entire JSON structure
+                self.find_store_carousels_recursive(data, carousels)
                             
         except Exception as e:
             print(f"Error extracting carousel titles: {e}")
             
         return carousels
+        
+    def find_store_carousels_recursive(self, obj, carousels):
+        """Recursively search through JSON structure to find store carousel components"""
+        if isinstance(obj, dict):
+            # Check if this object is a store carousel
+            if self.is_store_carousel(obj):
+                carousel_info = self.extract_store_carousel_info(obj)
+                if carousel_info:
+                    carousels.append(carousel_info)
+            
+            # Recursively search through all dictionary values
+            for value in obj.values():
+                self.find_store_carousels_recursive(value, carousels)
+                
+        elif isinstance(obj, list):
+            # Recursively search through all list items
+            for item in obj:
+                self.find_store_carousels_recursive(item, carousels)
         
     def is_store_carousel(self, item):
         """Check if item is a store_carousel component"""
