@@ -172,7 +172,7 @@ class DoorDashAPIGUI:
         options_frame.pack(fill=tk.X, pady=(0, 10))
         
         # Verbose mode checkbox
-        self.verbose_var = tk.BooleanVar(value=False)
+        self.verbose_var = tk.BooleanVar(value=True)  # Default to True for detailed response
         ttk.Checkbutton(options_frame, text="Show detailed response", 
                        variable=self.verbose_var).pack(side=tk.LEFT)
         
@@ -671,15 +671,20 @@ class DoorDashAPIGUI:
             summary = self.create_summary(response)
             self.summary_text.insert(tk.END, summary)
             
-            # Display raw response if verbose mode
-            if self.verbose_var.get():
-                try:
-                    formatted_json = json.dumps(response.json(), indent=2)
-                    self.raw_text.insert(tk.END, formatted_json)
-                except:
-                    self.raw_text.insert(tk.END, response.text)
-            else:
-                self.raw_text.insert(tk.END, "Enable 'Show detailed response' to see raw data")
+            # Display raw response with pretty printing
+            try:
+                # Try to parse and pretty print JSON
+                json_data = response.json()
+                formatted_json = json.dumps(json_data, indent=2, ensure_ascii=False)
+                self.raw_text.insert(tk.END, formatted_json)
+            except json.JSONDecodeError:
+                # If not valid JSON, show raw text
+                self.raw_text.insert(tk.END, "Response is not valid JSON. Raw content:\n\n")
+                self.raw_text.insert(tk.END, response.text)
+            except Exception as e:
+                # Fallback for any other errors
+                self.raw_text.insert(tk.END, f"Error formatting response: {str(e)}\n\n")
+                self.raw_text.insert(tk.END, response.text)
                 
             # Parse and display carousel titles
             if self.auto_parse_var.get():
@@ -721,10 +726,25 @@ class DoorDashAPIGUI:
                 data = response.json()
                 if isinstance(data, dict):
                     summary += f"📦 Response Keys: {', '.join(list(data.keys())[:10])}\n"
+                    
+                    # Add more detailed info in verbose mode
+                    if self.verbose_var.get():
+                        summary += f"📋 Total Response Keys: {len(data.keys())}\n"
+                        
+                        # Show response structure information
+                        if 'data' in data:
+                            summary += f"📊 Data section present\n"
+                        if 'meta' in data:
+                            summary += f"📊 Meta section present\n"
+                        if 'errors' in data:
+                            summary += f"⚠️ Errors section present\n"
+                            
             except:
                 pass
         else:
             summary += f"❌ Request Status: FAILED\n"
+            if self.verbose_var.get():
+                summary += f"📋 Error Details: Check Raw Response tab for full error information\n"
             
         summary += f"\n{'='*50}\n"
         return summary
