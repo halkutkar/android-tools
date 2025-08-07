@@ -1271,6 +1271,14 @@ Paste your token below (JWT prefix will be automatically removed):""",
             self.apply_homepage_preset
         )
         
+        # DoorDash Prod App
+        self.create_preset_option(presets_frame,
+            "📱 DoorDash Prod App",
+            "consumer-mobile-bff.doordash.com/v3/feed/homepage",
+            "Production Android app configuration with latest device IDs and session data",
+            self.apply_prod_app_preset
+        )
+        
         # Feed Me API Preset (legacy from previous version)
         self.create_preset_option(presets_frame, 
             "📱 Consumer Mobile BFF - Feed Me (Legacy)",
@@ -1464,6 +1472,58 @@ Paste your token below (JWT prefix will be automatically removed):""",
                           "Consumer Mobile BFF - Homepage preset applied!\n\n"
                           "⚠️ Note: You still need to set your Authorization Token\n"
                           "The preset has configured all other required headers and parameters including cursor.")
+    
+    def apply_prod_app_preset(self):
+        """Apply the DoorDash Prod App preset configuration"""
+        # Configuration based on the production Android app curl command provided
+        prod_app_config = {
+            'API_BASE_URL': 'https://consumer-mobile-bff.doordash.com',
+            'API_ENDPOINT_PATH': '/v3/feed/homepage',
+            'EXPERIENCE_ID': 'doordash',
+            'USER_AGENT': 'DoorDashConsumer/Android 16.0.0-prod-debug',
+            'CLIENT_VERSION': 'android v16.0.0-prod-debug b16000009',
+            'ACCEPT_LANGUAGE': 'en-US',
+            'USER_LOCALE': 'en-US',
+            'LATITUDE': '34.0282903',
+            'LONGITUDE': '-118.373421',
+            'SUBMARKET_ID': '1',
+            'DISTRICT_ID': '3',
+            'FACETS_VERSION': '4.0.0',
+            'FACETS_FEATURE_STORE': 'treatmentVariant3',
+            'BFF_ERROR_FORMAT': 'v2',
+            'SUPPORT_PARTNER_DASHPASS': 'true',
+            'SESSION_ID': '6703ac28-37e9-406c-a4d2-f7467a2bab19-dd-and',
+            'CLIENT_REQUEST_ID': '4fb49653-4bd4-40b7-b2bd-7bf87a2a4885-dd-and',
+            'CORRELATION_ID': '3f28aa97-e023-43ec-aace-a17500a8e20f-dd-and',
+            'DD_LOCATION_CONTEXT': 'eyJsYXQiOjM0LjAyODI5MDMsImxuZyI6LTExOC4zNzM0MjEsIm1hcmtldF9pZCI6IjIiLCJzdWJtYXJrZXRfaWQiOiIxIiwiZGlzdHJpY3RfaWQiOiIzIiwidGltZXpvbmUiOiJBbWVyaWNhL0xvc19BbmdlbGVzIiwiemlwY29kZSI6IjkwMDE2IiwiY291bnRyeV9zaG9ydF9uYW1lIjoiVVMiLCJjaXR5IjoiTG9zIEFuZ2VsZXMiLCJzdGF0ZSI6IkNBIiwiY29uc3VtZXJfYWRkcmVzc19saW5rX2lkIjoiMTQ1NTEyMzQxMiIsImFkZHJlc3NfaWQiOiIzNDUyMzM0MjkiLCJpc19ndWVzdF9jb25zdW1lciI6ZmFsc2V9',
+            'DD_IDS': '{"dd_device_id":"1211c7331d5ffe2f","dd_delivery_correlation_id":"76b077ad-71fb-47e8-8ce9-9b59008f841a","dd_login_id":"lx_f5ccdfd4-f9b5-402c-afee-e9386976fa76","dd_session_id":"sx_9eceac3d-2f25-4be3-b2cb-46d5a1b0aa3f","dd_android_id":"1211c7331d5ffe2f","dd_android_advertising_id":"5136cf26-f0fd-43fd-8bc5-4e96847df333"}',
+            'COOKIE': '',  # No cookie in the provided curl command
+            'REALTIME_EVENTS': '[] cursor=eyJvZmZzZXQiOjAsImNvbnRlbnRfaWRzIjpbXSwicmVxdWVzdF9wYXJlbnRfaWQiOiIiLCJyZXF1ZXN0X2NoaWxkX2lkIjoiIiwicmVxdWVzdF9jaGlsZF9jb21wb25lbnRfaWQiOiIiLCJjcm9zc192ZXJ0aWNhbF9wYWdlX3R5cGUiOiJIT01FUEFHRSIsInBhZ2Vfc3RhY2tfdHJhY2UiOltdLCJ2ZXJ0aWNhbF9pZHMiOlsxMDMsMywyLDE3NCwzNywxMzksMTQ2LDEzNiw3MCwyNjgsMjQxLDIzNSwyMzYsMTEwMDAxLDQsMjM4LDI0MywyODIsMTEwMDE2LDEwMDMzM10sInZlcnRpY2FsX2NvbnRleHRfaWQiOm51bGwsImxheW91dF9vdmVycmlkZSI6IlVOU1BFQ0lGSUVEIiwic2luZ2xlX3N0b3JlX2lkIjpudWxsLCJzZWFyY2hfaXRlbV9jYXJvdXNlbF9jdXJzb3IiOm51bGwsImNhdGVnb3J5X2lkcyI6W10sImNvbGxlY3Rpb25faWRzIjpbXSwiZGRfcGxhY2VfaWRzIjpbImMyNjc5NjAzLTg4OGYtNDI0NC1iZTcxLTYzZDc5NmU4MGNiMCIsImQxYzRhZjBjLTJmNzMtNDljNC05YzkzLWM1OWE4YzMwODcyNSJdLCJuZXh0X3BhZ2VfY2FjaGVfa2V5IjoiVkVSVElDQUw6MTk1NDQyMDg1OjEyMTFjNzMzMWQ1ZmZlMmY6MTo4MGZkNWFmMS0yOGZlLTQ3YzctYjljNS0zZTE2MGU1OGRhMmY6TFo0IiwiaXNfcGFnaW5hdGlvbl9mYWxsYmFjayI6bnVsbCwic291cmNlX3BhZ2VfdHlwZSI6bnVsbCwiZ2VvX3R5cGUiOiIiLCJnZW9faWQiOiIiLCJrZXl3b3JkIjoiIiwiYWRzX2N1cnNvcl9jYWNoZV9rZXkiOm51bGwsInZpc3VhbF9haXNsZXNfaW5zZXJ0aW9uX2luZGV4IjpudWxsLCJiYXNlQ3Vyc29yIjp7InBhZ2VfaWQiOiIiLCJwYWdlX3R5cGUiOiJOT1RfQVBQTElDQUJMRSIsImN1cnNvcl92ZXJzaW9uIjoiRkFDRVQifSwidmVydGljYWxfbmFtZXMiOnt9LCJpdGVtX2lkcyI6W10sIm1lcmNoYW50X3N1cHBsaWVkX2lkcyI6W10sImlzX291dF9vZl9zdG9jayI6bnVsbCwibWVudV9pZCI6bnVsbCwidHJhY2tpbmciOm51bGwsImRpZXRhcnlfdGFnIjpudWxsLCJvcmlnaW5fdGl0bGUiOm51bGwsInJhbmtlZF9yZW1haW5pbmdfY29sbGVjdGlvbl9pZHMiOm51bGwsInByZXZpb3VzbHlfc2Vlbl9jb2xsZWN0aW9uX2lkcyI6W10sInByZWNoZWNrb3V0X2J1bmRsZV9zZWFyY2hfaW5mbyI6bnVsbCwidG90YWxfaXRlbXNfb2Zmc2V0IjowLCJ0b3RhbF9hZHNfcHJldmlvdXNseV9ibGVuZGVkIjowLCJ2ZXJ0aWNhbF90aXRsZSI6bnVsbCwibXVsdGlfc3RvcmVfZW50aXRpZXMiOltdLCJjdXJzb3JWZXJzaW9uIjoiRkFDRVRfQ09OVEVOVF9PRkZTRVQiLCJwYWdlSWQiOiIiLCJwYWdlVHlwZSI6Ik5PVF9BUFBMSUNBQkxFIn0=',
+            'DEFAULT_VERBOSE': 'true',
+            'MAX_VERBOSE_LINES': '100'
+        }
+        
+        # Update config dictionary
+        for key, value in prod_app_config.items():
+            self.config[key] = value
+            
+        # Update GUI variables
+        for key, value in prod_app_config.items():
+            if key in self.config_vars:
+                self.config_vars[key].set(value)
+        
+        # Close the preset dialog
+        for widget in self.root.winfo_children():
+            if isinstance(widget, tk.Toplevel):
+                widget.destroy()
+                break
+        
+        self.update_warning_banner()
+        self.update_status("Applied DoorDash Prod App preset configuration")
+        messagebox.showinfo("Preset Applied", 
+                          "DoorDash Prod App preset applied!\n\n"
+                          "⚠️ Note: You still need to set your Authorization Token\n"
+                          "This preset includes production Android device IDs and latest session data.")
 
 def main():
     """Main function to run the GUI application"""
