@@ -610,21 +610,32 @@ Paste your token below (JWT prefix will be automatically removed):""",
             
             # Prepare URL with query parameters
             url = f"{self.config.get('API_BASE_URL', '')}{self.config.get('API_ENDPOINT_PATH', '')}"
-            params = {
-                "common_fields.lat": self.config.get("LATITUDE", ""),
-                "common_fields.lng": self.config.get("LONGITUDE", ""),
-                "common_fields.submarket_id": self.config.get("SUBMARKET_ID", ""),
-                "common_fields.district_id": self.config.get("DISTRICT_ID", "")
-            }
             
-            # Add next_page_cursor if it exists in realtime events
+            # Use different parameter formats based on the endpoint
+            endpoint_path = self.config.get('API_ENDPOINT_PATH', '')
+            if 'unified-gateway' in self.config.get('API_BASE_URL', '') or 'realtime_recommendation' in endpoint_path:
+                # Unified Gateway format
+                params = {
+                    "common_fields.lat": self.config.get("LATITUDE", ""),
+                    "common_fields.lng": self.config.get("LONGITUDE", ""),
+                    "common_fields.submarket_id": self.config.get("SUBMARKET_ID", ""),
+                    "common_fields.district_id": self.config.get("DISTRICT_ID", "")
+                }
+            else:
+                # Consumer BFF format (homepage, feed/me, etc.)
+                params = {
+                    "lat": self.config.get("LATITUDE", ""),
+                    "lng": self.config.get("LONGITUDE", "")
+                }
+            
+            # Add cursor parameter if it exists in realtime events or query
             realtime_events = self.config.get("REALTIME_EVENTS", "")
-            if "next_page_cursor" in realtime_events:
+            if "cursor=" in realtime_events:
                 try:
                     import re
-                    cursor_match = re.search(r'next_page_cursor=([^&]+)', realtime_events)
+                    cursor_match = re.search(r'cursor=([^&\s]+)', realtime_events)
                     if cursor_match:
-                        params["next_page_cursor"] = cursor_match.group(1)
+                        params["cursor"] = cursor_match.group(1)
                 except:
                     pass
             
@@ -645,10 +656,25 @@ Paste your token below (JWT prefix will be automatically removed):""",
                 "dd-user-locale": self.config.get("USER_LOCALE", ""),
                 "x-bff-error-format": self.config.get("BFF_ERROR_FORMAT", ""),
                 "dd-location-context": self.config.get("DD_LOCATION_CONTEXT", ""),
-                "x-realtime-recommendation-events": self.config.get("REALTIME_EVENTS", ""),
+                "x-realtime-recommendation-events": self.config.get("REALTIME_EVENTS", "").split(' cursor=')[0] if ' cursor=' in self.config.get("REALTIME_EVENTS", "") else self.config.get("REALTIME_EVENTS", ""),
                 "x-facets-version": self.config.get("FACETS_VERSION", ""),
                 "x-facets-feature-store": self.config.get("FACETS_FEATURE_STORE", "")
             }
+            
+            # Add Consumer BFF specific headers if using Consumer BFF endpoints
+            if 'consumer-mobile-bff' in self.config.get('API_BASE_URL', ''):
+                headers.update({
+                    "x-facets-feature-item-carousel": "true",
+                    "x-facets-feature-backend-driven-badges": "true", 
+                    "x-facets-feature-no-tile": "true",
+                    "x-facets-feature-item-steppers": "true",
+                    "x-facets-feature-quick-add-stepper-variant": "true",
+                    "x-facets-feature-store-carousel-redesign-round-1": "treatmentVariant2",
+                    "x-facets-feature-store-cell-redesign-round-3": "treatmentVariant3",
+                    "x-gifting-intent": "false",
+                    "traceparent": "00-0779dd623e69dfc82a93b7b553698d95-525a785c689917fe-00",
+                    "baggage": "dd-instrumentation.priority=1.0"
+                })
             
             # Remove empty headers
             headers = {k: v for k, v in headers.items() if v}
@@ -1412,7 +1438,7 @@ Paste your token below (JWT prefix will be automatically removed):""",
             'DD_LOCATION_CONTEXT': 'eyJsYXQiOjM0LjAyODI5MDMsImxuZyI6LTExOC4zNzM0MjEsIm1hcmtldF9pZCI6IjIiLCJzdWJtYXJrZXRfaWQiOiIxIiwiZGlzdHJpY3RfaWQiOiIzIiwidGltZXpvbmUiOiJBbWVyaWNhL0xvc19BbmdlbGVzIiwiemlwY29kZSI6IjkwMDE2IiwiY291bnRyeV9zaG9ydF9uYW1lIjoiVVMiLCJjaXR5IjoiTG9zIEFuZ2VsZXMiLCJzdGF0ZSI6IkNBIiwiY29uc3VtZXJfYWRkcmVzc19saW5rX2lkIjoiMTQ1NTEyMzQxMiIsImFkZHJlc3NfaWQiOiIzNDUyMzM0MjkiLCJpc19ndWVzdF9jb25zdW1lciI6ZmFsc2V9',
             'DD_IDS': '{"dd_device_id":"78158b794698adba","dd_delivery_correlation_id":"6823d337-a3cf-4072-81b3-aa6fcba69b8d","dd_login_id":"lx_d16f81d2-773c-4f06-9997-b0de82bfbf32","dd_session_id":"sx_eb41331c-72f7-4b26-bba4-1e58f7ba6566","dd_android_id":"78158b794698adba","dd_android_advertising_id":"29804a87-b1f8-4db9-be15-a25ec4606c91"}',
             'COOKIE': '__cf_bm=DIupgxWsFkASAiujjiTT2MT3ur4TChDFCiT_wEhxM0k-1754597899-1.0.1.1-Pq13lqhelrTdfq3KP0bH2WIPROBGaoqZ4xsLnORM14sHGeP9WeNJHYnioQCpI9RUr1tAssqTfXIGS8NNIE1Zv_QpGiGnSPGrHkh86fGk3qc; dd_country_shortname=US; dd_market_id=2',
-            'REALTIME_EVENTS': '[{"action_type":"store_visit","entity_id":"4932","timestamp":"2025-08-07 12:47:57"}]',
+            'REALTIME_EVENTS': '[{"action_type":"store_visit","entity_id":"4932","timestamp":"2025-08-07 12:47:57"}] cursor=eyJvZmZzZXQiOjAsImNvbnRlbnRfaWRzIjpbXSwicmVxdWVzdF9wYXJlbnRfaWQiOiIiLCJyZXF1ZXN0X2NoaWxkX2lkIjoiIiwicmVxdWVzdF9jaGlsZF9jb21wb25lbnRfaWQiOiIiLCJjcm9zc192ZXJ0aWNhbF9wYWdlX3R5cGUiOiJIT01FUEFHRSIsInBhZ2Vfc3RhY2tfdHJhY2UiOltdLCJ2ZXJ0aWNhbF9pZHMiOlsxMDMsMywyLDE3NCwzNywxMzksMTQ2LDEzNiw3MCwyNjgsMjQxLDIzNSwyMzYsMTEwMDAxLDQsMjM4LDI0MywyODIsMTEwMDE2LDEwMDMzM10sInZlcnRpY2FsX2NvbnRleHRfaWQiOm51bGwsImxheW91dF9vdmVycmlkZSI6IlVOU1BFQ0lGSUVEIiwic2luZ2xlX3N0b3JlX2lkIjpudWxsLCJzZWFyY2hfaXRlbV9jYXJvdXNlbF9jdXJzb3IiOm51bGwsImNhdGVnb3J5X2lkcyI6W10sImNvbGxlY3Rpb25faWRzIjpbXSwiZGRfcGxhY2VfaWRzIjpbImMyNjc5NjAzLTg4OGYtNDI0NC1iZTcxLTYzZDc5NmU4MGNiMCIsImQxYzRhZjBjLTJmNzMtNDljNC05YzkzLWM1OWE4YzMwODcyNSJdLCJuZXh0X3BhZ2VfY2FjaGVfa2V5IjoiVkVSVElDQUw6MTk1NDQyMDg1Ojc4MTU4Yjc5NDY5OGFkYmE6MTplN2E1YTAzMy1hZTA4LTQyY2MtODdjYi1iYzUxODM0MThmYTM6TFo0IiwiaXNfcGFnaW5hdGlvbl9mYWxsYmFjayI6bnVsbCwic291cmNlX3BhZ2VfdHlwZSI6bnVsbCwiZ2VvX3R5cGUiOiIiLCJnZW9faWQiOiIiLCJrZXl3b3JkIjoiIiwiYWRzX2N1cnNvcl9jYWNoZV9rZXkiOm51bGwsInZpc3VhbF9haXNsZXNfaW5zZXJ0aW9uX2luZGV4IjpudWxsLCJiYXNlQ3Vyc29yIjp7InBhZ2VfaWQiOiIiLCJwYWdlX3R5cGUiOiJOT1RfQVBQTElDQUJMRSIsImN1cnNvcl92ZXJzaW9uIjoiRkFDRVQifSwidmVydGljYWxfbmFtZXMiOnt9LCJpdGVtX2lkcyI6W10sIm1lcmNoYW50X3N1cHBsaWVkX2lkcyI6W10sImlzX291dF9vZl9zdG9jayI6bnVsbCwibWVudV9pZCI6bnVsbCwidHJhY2tpbmciOm51bGwsImRpZXRhcnlfdGFnIjpudWxsLCJvcmlnaW5fdGl0bGUiOm51bGwsInJhbmtlZF9yZW1haW5pbmdfY29sbGVjdGlvbl9pZHMiOm51bGwsInByZXZpb3VzbHlfc2Vlbl9jb2xsZWN0aW9uX2lkcyI6W10sInByZWNoZWNrb3V0X2J1bmRsZV9zZWFyY2hfaW5mbyI6bnVsbCwidG90YWxfaXRlbXNfb2Zmc2V0IjowLCJ0b3RhbF9hZHNfcHJldmlvdXNseV9ibGVuZGVkIjowLCJ2ZXJ0aWNhbF90aXRsZSI6bnVsbCwibXVsdGlfc3RvcmVfZW50aXRpZXMiOltdLCJjdXJzb3JWZXJzaW9uIjoiRkFDRVRfQ09OVEVOVF9PRkZTRVQiLCJwYWdlSWQiOiIiLCJwYWdlVHlwZSI6Ik5PVF9BUFBMSUNBQkxFIn0%3D',
             'DEFAULT_VERBOSE': 'true',
             'MAX_VERBOSE_LINES': '100'
         }
@@ -1437,7 +1463,7 @@ Paste your token below (JWT prefix will be automatically removed):""",
         messagebox.showinfo("Preset Applied", 
                           "Consumer Mobile BFF - Homepage preset applied!\n\n"
                           "⚠️ Note: You still need to set your Authorization Token\n"
-                          "The preset has configured all other required headers and parameters.")
+                          "The preset has configured all other required headers and parameters including cursor.")
 
 def main():
     """Main function to run the GUI application"""
