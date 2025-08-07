@@ -235,7 +235,7 @@ class DoorDashAPIGUI:
         
         # Token entry
         token_var = tk.StringVar()
-        token_entry = ttk.Entry(main_frame, textvariable=token_var, width=60, show="*")
+        token_entry = ttk.Entry(main_frame, textvariable=token_var, width=60)
         token_entry.pack(pady=(0, 20), fill=tk.X)
         token_entry.focus()
         
@@ -246,6 +246,10 @@ class DoorDashAPIGUI:
         def save_token():
             token = token_var.get().strip()
             if token:
+                # Remove JWT prefix if present
+                if token.startswith('JWT '):
+                    token = token[4:].strip()
+                
                 self.config['AUTHORIZATION_TOKEN'] = token
                 self.update_status("Authorization token updated successfully")
                 self.refresh_config_display()
@@ -272,14 +276,12 @@ class DoorDashAPIGUI:
         
     def refresh_config_display(self):
         """Refresh the configuration display section"""
-        # Find and update the config section
-        for widget in self.root.winfo_children():
-            if hasattr(widget, 'winfo_children'):
-                for child in widget.winfo_children():
-                    if hasattr(child, 'cget') and 'Configuration' in str(child.cget('text') if hasattr(child, 'cget') else ''):
-                                                 # Recreate the config section
-                         self.create_config_section(widget)
-                         break
+        # Simply update the config variables in the GUI if they exist
+        if hasattr(self, 'config_vars'):
+            for key, var in self.config_vars.items():
+                if key in self.config:
+                    var.set(self.config.get(key, ''))
+        self.update_status("Configuration display refreshed")
                          
     def create_config_field(self, parent, label, key, description="", width=50, is_password=False):
         """Create a configuration field with label and entry"""
@@ -290,8 +292,17 @@ class DoorDashAPIGUI:
         label_widget = ttk.Label(frame, text=f"{label}:", font=('Arial', 9, 'bold'), width=20)
         label_widget.pack(side=tk.LEFT, padx=(0, 10))
         
+        # Clean JWT prefix if this is an authorization token field
+        initial_value = self.config.get(key, '')
+        if key == 'AUTHORIZATION_TOKEN' and initial_value:
+            # Remove JWT prefix if present and trim whitespace
+            if initial_value.startswith('JWT '):
+                initial_value = initial_value[4:].strip()
+            else:
+                initial_value = initial_value.strip()
+        
         # Entry variable
-        var = tk.StringVar(value=self.config.get(key, ''))
+        var = tk.StringVar(value=initial_value)
         self.config_vars[key] = var
         
         # Entry widget
@@ -338,7 +349,7 @@ class DoorDashAPIGUI:
         ttk.Label(scrollable_frame, text="🔑 Authentication", font=('Arial', 12, 'bold')).pack(pady=(0, 10))
         
         self.create_config_field(scrollable_frame, "Authorization Token", "AUTHORIZATION_TOKEN", 
-                               "JWT Bearer token", is_password=True)
+                               "JWT Bearer token", is_password=False)
         
         ttk.Separator(scrollable_frame, orient='horizontal').pack(fill=tk.X, pady=10)
         
