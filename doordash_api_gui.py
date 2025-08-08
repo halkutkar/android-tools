@@ -17,7 +17,7 @@ class DoorDashAPIGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("DoorDash API Tester & Configuration Manager")
-        self.root.geometry("1200x800")
+        self.root.geometry("1500x1000")
         self.root.configure(bg='#f0f0f0')
         
         # Configuration variables
@@ -63,15 +63,23 @@ class DoorDashAPIGUI:
                                font=('Arial', 16, 'bold'))
         title_label.pack(pady=(0, 10))
         
+        # Create a PanedWindow to split configuration and response areas
+        paned_window = ttk.PanedWindow(main_frame, orient=tk.VERTICAL)
+        paned_window.pack(fill=tk.BOTH, expand=True)
+        
+        # Top pane for configuration and controls
+        top_pane = ttk.Frame(paned_window)
+        paned_window.add(top_pane, weight=3)  # Give configuration area more weight
+        
         # Configuration section
-        self.create_config_section(main_frame)
+        self.create_config_section(top_pane)
         
         # Request controls
-        self.create_controls_section(main_frame)
+        self.create_controls_section(top_pane)
         
-        # Response area with tabs
-        response_frame = ttk.Frame(main_frame)
-        response_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
+        # Bottom pane for response area
+        response_frame = ttk.Frame(paned_window)
+        paned_window.add(response_frame, weight=2)  # Response area gets less weight
         
         # Create notebook for different response views
         self.response_notebook = ttk.Notebook(response_frame)
@@ -108,6 +116,14 @@ class DoorDashAPIGUI:
         self.raw_display = scrolledtext.ScrolledText(self.raw_tab, wrap=tk.WORD, 
                                                    font=('Consolas', 10))
         self.raw_display.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Experiments tab
+        self.experiments_tab = ttk.Frame(self.response_notebook)
+        self.response_notebook.add(self.experiments_tab, text="🧪 Experiments")
+        
+        self.experiments_display = scrolledtext.ScrolledText(self.experiments_tab, wrap=tk.WORD, 
+                                                           font=('Consolas', 10))
+        self.experiments_display.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
         # Status bar
         self.create_status_bar(main_frame)
@@ -175,12 +191,21 @@ class DoorDashAPIGUI:
         
     def create_config_section(self, parent):
         """Create configuration editing section"""
-        config_frame = ttk.LabelFrame(parent, text="📋 Configuration Editor", padding=10)
-        config_frame.pack(fill=tk.X, pady=(0, 10))
+        # Add title label instead of LabelFrame border
+        title_frame = ttk.Frame(parent)
+        title_frame.pack(fill=tk.X, pady=(0, 5))
+        ttk.Label(title_frame, text="📋 Configuration Editor", 
+                 font=('Arial', 14, 'bold')).pack(anchor=tk.W)
+        
+        config_frame = ttk.Frame(parent, padding=10)
+        config_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
         
         # Create notebook for organized config sections
         self.config_notebook = ttk.Notebook(config_frame)
         self.config_notebook.pack(fill=tk.BOTH, expand=True)
+        
+        # Set minimum height for the notebook
+        config_frame.configure(height=400)
         
         # Initialize config variables dictionary
         self.config_vars = {}
@@ -383,43 +408,71 @@ Paste your token below (JWT prefix will be automatically removed):""",
         api_frame = ttk.Frame(self.config_notebook)
         self.config_notebook.add(api_frame, text="🌐 API Settings")
         
-        # Scrollable frame
+        # Scrollable frame with improved layout
         canvas = tk.Canvas(api_frame)
         scrollbar = ttk.Scrollbar(api_frame, orient="vertical", command=canvas.yview)
         scrollable_frame = ttk.Frame(canvas)
         
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        # Configure canvas to expand scrollable_frame to full width
+        def configure_scroll_region(event=None):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            # Make scrollable_frame fill the canvas width
+            canvas_width = canvas.winfo_width()
+            if canvas_width > 1:  # Ensure canvas is properly initialized
+                canvas.itemconfig(canvas_window, width=canvas_width)
         
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.bind('<Configure>', configure_scroll_region)
+        scrollable_frame.bind('<Configure>', configure_scroll_region)
         
-        # API configuration fields
-        ttk.Label(scrollable_frame, text="🔌 API Connection", font=('Arial', 12, 'bold')).pack(pady=(0, 10))
+        # API configuration fields - now with better spacing and layout
+        content_frame = ttk.Frame(scrollable_frame)
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
+        
+        ttk.Label(content_frame, text="🔌 API Connection", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
         
         # Base URL field
-        self.create_api_host_field_with_presets(scrollable_frame)
+        self.create_api_host_field_with_presets(content_frame)
         
-        self.create_config_field(scrollable_frame, "Experience ID", "EXPERIENCE_ID", 
+        self.create_config_field(content_frame, "Experience ID", "EXPERIENCE_ID", 
                                "Application experience identifier")
         
-        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill=tk.X, pady=10)
+        ttk.Separator(content_frame, orient='horizontal').pack(fill=tk.X, pady=20)
         
-        ttk.Label(scrollable_frame, text="🔑 Authentication", font=('Arial', 12, 'bold')).pack(pady=(0, 10))
+        ttk.Label(content_frame, text="🔑 Authentication", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
         
-        self.create_config_field(scrollable_frame, "Authorization Token", "AUTHORIZATION_TOKEN", 
+        self.create_config_field(content_frame, "Authorization Token", "AUTHORIZATION_TOKEN", 
                                "JWT Bearer token", is_password=False)
         
-        ttk.Separator(scrollable_frame, orient='horizontal').pack(fill=tk.X, pady=10)
+        ttk.Separator(content_frame, orient='horizontal').pack(fill=tk.X, pady=20)
         
-        ttk.Label(scrollable_frame, text="📱 Client Information", font=('Arial', 12, 'bold')).pack(pady=(0, 10))
+        ttk.Label(content_frame, text="📱 Client Information", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
         
-        self.create_config_field(scrollable_frame, "User Agent", "USER_AGENT", 
+        self.create_config_field(content_frame, "User Agent", "USER_AGENT", 
                                "Client user agent string")
-        self.create_config_field(scrollable_frame, "Client Version", "CLIENT_VERSION", 
+        self.create_config_field(content_frame, "Client Version", "CLIENT_VERSION", 
                                "Application version")
+        
+        # Client preset buttons
+        client_preset_frame = ttk.Frame(content_frame)
+        client_preset_frame.pack(fill=tk.X, pady=(15, 0))
+        
+        ttk.Button(client_preset_frame, text="📱 iOS Prod", 
+                  command=self.apply_ios_prod_preset, 
+                  width=15).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(client_preset_frame, text="🤖 Android Prod", 
+                  command=self.apply_android_prod_preset, 
+                  width=15).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(client_preset_frame, text="🛠️ Android Debug", 
+                  command=self.apply_android_debug_preset, 
+                  width=15).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(client_preset_frame, text="🌐 Web Chrome", 
+                  command=self.apply_web_chrome_preset, 
+                  width=15).pack(side=tk.LEFT)
+        
+        # Add some bottom padding
+        ttk.Frame(content_frame, height=30).pack()
         
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
@@ -501,6 +554,17 @@ Paste your token below (JWT prefix will be automatically removed):""",
         self.create_config_field(scrollable_frame, "Longitude", "LONGITUDE", 
                                "Geographic longitude")
         
+        # Location preset buttons
+        location_preset_frame = ttk.Frame(scrollable_frame)
+        location_preset_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        ttk.Button(location_preset_frame, text="🏢 SF Office", 
+                  command=self.apply_sf_office_preset, 
+                  width=15).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(location_preset_frame, text="🗽 NY Office", 
+                  command=self.apply_ny_office_preset, 
+                  width=15).pack(side=tk.LEFT)
+        
         ttk.Separator(scrollable_frame, orient='horizontal').pack(fill=tk.X, pady=10)
         
         ttk.Label(scrollable_frame, text="🏢 Market Information", font=('Arial', 12, 'bold')).pack(pady=(0, 10))
@@ -569,6 +633,8 @@ Paste your token below (JWT prefix will be automatically removed):""",
                                "Backend error format version")
         self.create_config_field(scrollable_frame, "Support Partner Dashpass", "SUPPORT_PARTNER_DASHPASS", 
                                "Enable partner dashpass support")
+        self.create_config_field(scrollable_frame, "Cursor", "CURSOR", 
+                               "Pagination cursor (set to null to exclude)", width=60)
         
         ttk.Separator(scrollable_frame, orient='horizontal').pack(fill=tk.X, pady=10)
         
@@ -628,9 +694,14 @@ Paste your token below (JWT prefix will be automatically removed):""",
                     "lng": self.config.get("LONGITUDE", "")
                 }
             
-            # Add cursor parameter if it exists in realtime events or query
+            # Add cursor parameter if configured and not null
+            cursor = self.config.get("CURSOR", "")
+            if cursor and cursor.lower() != "null":
+                params["cursor"] = cursor
+            
+            # Legacy: Also check if cursor exists in realtime events (for backward compatibility)
             realtime_events = self.config.get("REALTIME_EVENTS", "")
-            if "cursor=" in realtime_events:
+            if "cursor=" in realtime_events and not cursor:
                 try:
                     import re
                     cursor_match = re.search(r'cursor=([^&\s]+)', realtime_events)
@@ -682,9 +753,56 @@ Paste your token below (JWT prefix will be automatically removed):""",
             # Show request details
             self.show_request_details(url, params, headers)
             
-            # Make the request
-            self.update_status("Making API request...")
-            response = requests.get(url, params=params, headers=headers, timeout=30)
+            # Check if this is the experiments endpoint (requires POST with JSON body)
+            if 'dynamic-values-edge-service' in self.config.get('API_BASE_URL', ''):
+                # Experiments endpoint uses POST with JSON body
+                headers["content-type"] = "application/json; charset=UTF-8"
+                
+                # Create the JSON body for experiments request
+                json_body = {
+                    "namespaces": [],
+                    "legacy_namespaces": [],
+                    "application": "consumer",
+                    "app_version": "16.0.0-prod-debug",
+                    "exposures_enabled": True,
+                    "os": "Android",
+                    "os_version": "16",
+                    "context": {
+                        "device_id": "78158b794698adba",
+                        "device_region": "US",
+                        "device_manufacturer": "Google",
+                        "device_model": "sdk_gphone64_arm64",
+                        "os_version": "36",
+                        "language": "en",
+                        "language_tag": "en-US",
+                        "saved_info_user_id": "196174870",
+                        "consumer_id": "195442085",
+                        "submarket_id": self.config.get("SUBMARKET_ID", "1"),
+                        "country_code": "US",
+                        "is_guest": "false",
+                        "team_id": "eef7656a-b0e1-4f34-a35e-4c3cc3f4a640",
+                        "user_id": "196174870"
+                    },
+                    "dv_names": [
+                        "mobile-feature-client-side-default",
+                        "mobile-feature-multifeature-holdout",
+                        "mobile-dv-telemetry-timeout-flag",
+                        "mobile-feature-fetch-by-dv-list",
+                        "android_async_dv_refresh_cutoff_time"
+                    ],
+                    "evaluation_options": {
+                        "reference_exposure_enabled": True,
+                        "client_side_default_enabled": False
+                    }
+                }
+                
+                # Make POST request with JSON body
+                self.update_status("Making experiments API request (POST)...")
+                response = requests.post(url, json=json_body, headers=headers, timeout=30)
+            else:
+                # Regular GET request for other endpoints
+                self.update_status("Making API request...")
+                response = requests.get(url, params=params, headers=headers, timeout=30)
             
             # Process the response
             self.process_response(response)
@@ -760,6 +878,8 @@ Paste your token below (JWT prefix will be automatically removed):""",
             self.response_display.delete('1.0', tk.END)
             self.summary_display.delete('1.0', tk.END)
             self.raw_display.delete('1.0', tk.END)
+            self.experiments_display.delete('1.0', tk.END)
+            self.update_status("Response cleared")
             
             # Parse JSON response
             try:
@@ -812,10 +932,25 @@ Paste your token below (JWT prefix will be automatically removed):""",
             else:
                 self.raw_display.insert(tk.END, response.text)
             
-            # Switch to the carousel titles tab to show results
-            self.response_notebook.select(self.carousel_tab)
-            
-            self.update_status(f"✅ Request completed successfully - {len(carousel_titles)} carousel titles found")
+            # Display experiments analysis (if response contains experiments)
+            if response_json and 'experiments' in response_json:
+                experiments_analysis = self.parse_experiments_response(response_json)
+                self.experiments_display.insert(tk.END, experiments_analysis)
+                # Switch to experiments tab if experiments are found
+                self.response_notebook.select(self.experiments_tab)
+                experiments_count = len(response_json.get('experiments', []))
+                self.update_status(f"✅ Request completed successfully - {experiments_count} experiments analyzed")
+            else:
+                # If no experiments, add a message to the experiments tab
+                self.experiments_display.insert(tk.END, "🧪 EXPERIMENTS ANALYSIS\n" + "=" * 50 + "\n\n"
+                                               + "❌ No experiments found in this response\n\n"
+                                               + "This endpoint may not return experiment data, or\n"
+                                               + "the response structure is different from expected.\n\n"
+                                               + "Expected structure: {'experiments': [...]}")
+                
+                # Switch to the carousel titles tab to show results (fallback behavior)
+                self.response_notebook.select(self.carousel_tab)
+                self.update_status(f"✅ Request completed successfully - {len(carousel_titles)} carousel titles found")
             
         except Exception as e:
             error_msg = f"❌ Error processing response: {str(e)}"
@@ -1063,6 +1198,7 @@ Paste your token below (JWT prefix will be automatically removed):""",
         self.response_display.delete('1.0', tk.END)
         self.summary_display.delete('1.0', tk.END)
         self.raw_display.delete('1.0', tk.END)
+        self.experiments_display.delete('1.0', tk.END)
         self.update_status("Response cleared")
         
     def save_configuration(self):
@@ -1282,6 +1418,11 @@ Paste your token below (JWT prefix will be automatically removed):""",
                 "description": "Legacy feed me endpoint with iOS feature flags",
                 "endpoint": "consumer-mobile-bff.doordash.com/v3/feed/me",
                 "method": self.apply_feed_me_preset
+            },
+            "🧪 Dynamic Values Edge Service - Experiments": {
+                "description": "Feature flags and A/B testing endpoint with experiment configurations",
+                "endpoint": "dynamic-values-edge-service.doordash.com/v1/experiments/",
+                "method": self.apply_experiments_preset
             }
         }
         
@@ -1466,7 +1607,8 @@ Paste your token below (JWT prefix will be automatically removed):""",
             'DD_LOCATION_CONTEXT': 'eyJsYXQiOjM0LjAyODI5MDMsImxuZyI6LTExOC4zNzM0MjEsIm1hcmtldF9pZCI6IjIiLCJzdWJtYXJrZXRfaWQiOiIxIiwiZGlzdHJpY3RfaWQiOiIzIiwidGltZXpvbmUiOiJBbWVyaWNhL0xvc19BbmdlbGVzIiwiemlwY29kZSI6IjkwMDE2IiwiY291bnRyeV9zaG9ydF9uYW1lIjoiVVMiLCJjaXR5IjoiTG9zIEFuZ2VsZXMiLCJzdGF0ZSI6IkNBIiwiY29uc3VtZXJfYWRkcmVzc19saW5rX2lkIjoiMTQ1NTEyMzQxMiIsImFkZHJlc3NfaWQiOiIzNDUyMzM0MjkiLCJpc19ndWVzdF9jb25zdW1lciI6ZmFsc2V9',
             'DD_IDS': '{"dd_device_id":"78158b794698adba","dd_delivery_correlation_id":"6823d337-a3cf-4072-81b3-aa6fcba69b8d","dd_login_id":"lx_d16f81d2-773c-4f06-9997-b0de82bfbf32","dd_session_id":"sx_eb41331c-72f7-4b26-bba4-1e58f7ba6566","dd_android_id":"78158b794698adba","dd_android_advertising_id":"29804a87-b1f8-4db9-be15-a25ec4606c91"}',
             'COOKIE': '__cf_bm=DIupgxWsFkASAiujjiTT2MT3ur4TChDFCiT_wEhxM0k-1754597899-1.0.1.1-Pq13lqhelrTdfq3KP0bH2WIPROBGaoqZ4xsLnORM14sHGeP9WeNJHYnioQCpI9RUr1tAssqTfXIGS8NNIE1Zv_QpGiGnSPGrHkh86fGk3qc; dd_country_shortname=US; dd_market_id=2',
-            'REALTIME_EVENTS': '[{"action_type":"store_visit","entity_id":"4932","timestamp":"2025-08-07 12:47:57"}] cursor=eyJvZmZzZXQiOjAsImNvbnRlbnRfaWRzIjpbXSwicmVxdWVzdF9wYXJlbnRfaWQiOiIiLCJyZXF1ZXN0X2NoaWxkX2lkIjoiIiwicmVxdWVzdF9jaGlsZF9jb21wb25lbnRfaWQiOiIiLCJjcm9zc192ZXJ0aWNhbF9wYWdlX3R5cGUiOiJIT01FUEFHRSIsInBhZ2Vfc3RhY2tfdHJhY2UiOltdLCJ2ZXJ0aWNhbF9pZHMiOlsxMDMsMywyLDE3NCwzNywxMzksMTQ2LDEzNiw3MCwyNjgsMjQxLDIzNSwyMzYsMTEwMDAxLDQsMjM4LDI0MywyODIsMTEwMDE2LDEwMDMzM10sInZlcnRpY2FsX2NvbnRleHRfaWQiOm51bGwsImxheW91dF9vdmVycmlkZSI6IlVOU1BFQ0lGSUVEIiwic2luZ2xlX3N0b3JlX2lkIjpudWxsLCJzZWFyY2hfaXRlbV9jYXJvdXNlbF9jdXJzb3IiOm51bGwsImNhdGVnb3J5X2lkcyI6W10sImNvbGxlY3Rpb25faWRzIjpbXSwiZGRfcGxhY2VfaWRzIjpbImMyNjc5NjAzLTg4OGYtNDI0NC1iZTcxLTYzZDc5NmU4MGNiMCIsImQxYzRhZjBjLTJmNzMtNDljNC05YzkzLWM1OWE4YzMwODcyNSJdLCJuZXh0X3BhZ2VfY2FjaGVfa2V5IjoiVkVSVElDQUw6MTk1NDQyMDg1Ojc4MTU4Yjc5NDY5OGFkYmE6MTplN2E1YTAzMy1hZTA4LTQyY2MtODdjYi1iYzUxODM0MThmYTM6TFo0IiwiaXNfcGFnaW5hdGlvbl9mYWxsYmFjayI6bnVsbCwic291cmNlX3BhZ2VfdHlwZSI6bnVsbCwiZ2VvX3R5cGUiOiIiLCJnZW9faWQiOiIiLCJrZXl3b3JkIjoiIiwiYWRzX2N1cnNvcl9jYWNoZV9rZXkiOm51bGwsInZpc3VhbF9haXNsZXNfaW5zZXJ0aW9uX2luZGV4IjpudWxsLCJiYXNlQ3Vyc29yIjp7InBhZ2VfaWQiOiIiLCJwYWdlX3R5cGUiOiJOT1RfQVBQTElDQUJMRSIsImN1cnNvcl92ZXJzaW9uIjoiRkFDRVQifSwidmVydGljYWxfbmFtZXMiOnt9LCJpdGVtX2lkcyI6W10sIm1lcmNoYW50X3N1cHBsaWVkX2lkcyI6W10sImlzX291dF9vZl9zdG9jayI6bnVsbCwibWVudV9pZCI6bnVsbCwidHJhY2tpbmciOm51bGwsImRpZXRhcnlfdGFnIjpudWxsLCJvcmlnaW5fdGl0bGUiOm51bGwsInJhbmtlZF9yZW1haW5pbmdfY29sbGVjdGlvbl9pZHMiOm51bGwsInByZXZpb3VzbHlfc2Vlbl9jb2xsZWN0aW9uX2lkcyI6W10sInByZWNoZWNrb3V0X2J1bmRsZV9zZWFyY2hfaW5mbyI6bnVsbCwidG90YWxfaXRlbXNfb2Zmc2V0IjowLCJ0b3RhbF9hZHNfcHJldmlvdXNseV9ibGVuZGVkIjowLCJ2ZXJ0aWNhbF90aXRsZSI6bnVsbCwibXVsdGlfc3RvcmVfZW50aXRpZXMiOltdLCJjdXJzb3JWZXJzaW9uIjoiRkFDRVRfQ09OVEVOVF9PRkZTRVQiLCJwYWdlSWQiOiIiLCJwYWdlVHlwZSI6Ik5PVF9BUFBMSUNBQkxFIn0%3D',
+            'REALTIME_EVENTS': '[{"action_type":"store_visit","entity_id":"4932","timestamp":"2025-08-07 12:47:57"}]',
+            'CURSOR': 'eyJvZmZzZXQiOjAsImNvbnRlbnRfaWRzIjpbXSwicmVxdWVzdF9wYXJlbnRfaWQiOiIiLCJyZXF1ZXN0X2NoaWxkX2lkIjoiIiwicmVxdWVzdF9jaGlsZF9jb21wb25lbnRfaWQiOiIiLCJjcm9zc192ZXJ0aWNhbF9wYWdlX3R5cGUiOiJIT01FUEFHRSIsInBhZ2Vfc3RhY2tfdHJhY2UiOltdLCJ2ZXJ0aWNhbF9pZHMiOlsxMDMsMywyLDE3NCwzNywxMzksMTQ2LDEzNiw3MCwyNjgsMjQxLDIzNSwyMzYsMTEwMDAxLDQsMjM4LDI0MywyODIsMTEwMDE2LDEwMDMzM10sInZlcnRpY2FsX2NvbnRleHRfaWQiOm51bGwsImxheW91dF9vdmVycmlkZSI6IlVOU1BFQ0lGSUVEIiwic2luZ2xlX3N0b3JlX2lkIjpudWxsLCJzZWFyY2hfaXRlbV9jYXJvdXNlbF9jdXJzb3IiOm51bGwsImNhdGVnb3J5X2lkcyI6W10sImNvbGxlY3Rpb25faWRzIjpbXSwiZGRfcGxhY2VfaWRzIjpbImMyNjc5NjAzLTg4OGYtNDI0NC1iZTcxLTYzZDc5NmU4MGNiMCIsImQxYzRhZjBjLTJmNzMtNDljNC05YzkzLWM1OWE4YzMwODcyNSJdLCJuZXh0X3BhZ2VfY2FjaGVfa2V5IjoiVkVSVElDQUw6MTk1NDQyMDg1Ojc4MTU4Yjc5NDY5OGFkYmE6MTplN2E1YTAzMy1hZTA4LTQyY2MtODdjYi1iYzUxODM0MThmYTM6TFo0IiwiaXNfcGFnaW5hdGlvbl9mYWxsYmFjayI6bnVsbCwic291cmNlX3BhZ2VfdHlwZSI6bnVsbCwiZ2VvX3R5cGUiOiIiLCJnZW9faWQiOiIiLCJrZXl3b3JkIjoiIiwiYWRzX2N1cnNvcl9jYWNoZV9rZXkiOm51bGwsInZpc3VhbF9haXNsZXNfaW5zZXJ0aW9uX2luZGV4IjpudWxsLCJiYXNlQ3Vyc29yIjp7InBhZ2VfaWQiOiIiLCJwYWdlX3R5cGUiOiJOT1RfQVBQTElDQUJMRSIsImN1cnNvcl92ZXJzaW9uIjoiRkFDRVQifSwidmVydGljYWxfbmFtZXMiOnt9LCJpdGVtX2lkcyI6W10sIm1lcmNoYW50X3N1cHBsaWVkX2lkcyI6W10sImlzX291dF9vZl9zdG9jayI6bnVsbCwibWVudV9pZCI6bnVsbCwidHJhY2tpbmciOm51bGwsImRpZXRhcnlfdGFnIjpudWxsLCJvcmlnaW5fdGl0bGUiOm51bGwsInJhbmtlZF9yZW1haW5pbmdfY29sbGVjdGlvbl9pZHMiOm51bGwsInByZXZpb3VzbHlfc2Vlbl9jb2xsZWN0aW9uX2lkcyI6W10sInByZWNoZWNrb3V0X2J1bmRsZV9zZWFyY2hfaW5mbyI6bnVsbCwidG90YWxfaXRlbXNfb2Zmc2V0IjowLCJ0b3RhbF9hZHNfcHJldmlvdXNseV9ibGVuZGVkIjowLCJ2ZXJ0aWNhbF90aXRsZSI6bnVsbCwibXVsdGlfc3RvcmVfZW50aXRpZXMiOltdLCJjdXJzb3JWZXJzaW9uIjoiRkFDRVRfQ09OVEVOVF9PRkZTRVQiLCJwYWdlSWQiOiIiLCJwYWdlVHlwZSI6Ik5PVF9BUFBMSUNBQkxFIn0%3D',
             'DEFAULT_VERBOSE': 'true',
             'MAX_VERBOSE_LINES': '100'
         }
@@ -1518,7 +1660,8 @@ Paste your token below (JWT prefix will be automatically removed):""",
             'DD_LOCATION_CONTEXT': 'eyJsYXQiOjM0LjAyODI5MDMsImxuZyI6LTExOC4zNzM0MjEsIm1hcmtldF9pZCI6IjIiLCJzdWJtYXJrZXRfaWQiOiIxIiwiZGlzdHJpY3RfaWQiOiIzIiwidGltZXpvbmUiOiJBbWVyaWNhL0xvc19BbmdlbGVzIiwiemlwY29kZSI6IjkwMDE2IiwiY291bnRyeV9zaG9ydF9uYW1lIjoiVVMiLCJjaXR5IjoiTG9zIEFuZ2VsZXMiLCJzdGF0ZSI6IkNBIiwiY29uc3VtZXJfYWRkcmVzc19saW5rX2lkIjoiMTQ1NTEyMzQxMiIsImFkZHJlc3NfaWQiOiIzNDUyMzM0MjkiLCJpc19ndWVzdF9jb25zdW1lciI6ZmFsc2V9',
             'DD_IDS': '{"dd_device_id":"1211c7331d5ffe2f","dd_delivery_correlation_id":"76b077ad-71fb-47e8-8ce9-9b59008f841a","dd_login_id":"lx_f5ccdfd4-f9b5-402c-afee-e9386976fa76","dd_session_id":"sx_9eceac3d-2f25-4be3-b2cb-46d5a1b0aa3f","dd_android_id":"1211c7331d5ffe2f","dd_android_advertising_id":"5136cf26-f0fd-43fd-8bc5-4e96847df333"}',
             'COOKIE': '',  # No cookie in the provided curl command
-            'REALTIME_EVENTS': '[] cursor=eyJvZmZzZXQiOjAsImNvbnRlbnRfaWRzIjpbXSwicmVxdWVzdF9wYXJlbnRfaWQiOiIiLCJyZXF1ZXN0X2NoaWxkX2lkIjoiIiwicmVxdWVzdF9jaGlsZF9jb21wb25lbnRfaWQiOiIiLCJjcm9zc192ZXJ0aWNhbF9wYWdlX3R5cGUiOiJIT01FUEFHRSIsInBhZ2Vfc3RhY2tfdHJhY2UiOltdLCJ2ZXJ0aWNhbF9pZHMiOlsxMDMsMywyLDE3NCwzNywxMzksMTQ2LDEzNiw3MCwyNjgsMjQxLDIzNSwyMzYsMTEwMDAxLDQsMjM4LDI0MywyODIsMTEwMDE2LDEwMDMzM10sInZlcnRpY2FsX2NvbnRleHRfaWQiOm51bGwsImxheW91dF9vdmVycmlkZSI6IlVOU1BFQ0lGSUVEIiwic2luZ2xlX3N0b3JlX2lkIjpudWxsLCJzZWFyY2hfaXRlbV9jYXJvdXNlbF9jdXJzb3IiOm51bGwsImNhdGVnb3J5X2lkcyI6W10sImNvbGxlY3Rpb25faWRzIjpbXSwiZGRfcGxhY2VfaWRzIjpbImMyNjc5NjAzLTg4OGYtNDI0NC1iZTcxLTYzZDc5NmU4MGNiMCIsImQxYzRhZjBjLTJmNzMtNDljNC05YzkzLWM1OWE4YzMwODcyNSJdLCJuZXh0X3BhZ2VfY2FjaGVfa2V5IjoiVkVSVElDQUw6MTk1NDQyMDg1OjEyMTFjNzMzMWQ1ZmZlMmY6MTo4MGZkNWFmMS0yOGZlLTQ3YzctYjljNS0zZTE2MGU1OGRhMmY6TFo0IiwiaXNfcGFnaW5hdGlvbl9mYWxsYmFjayI6bnVsbCwic291cmNlX3BhZ2VfdHlwZSI6bnVsbCwiZ2VvX3R5cGUiOiIiLCJnZW9faWQiOiIiLCJrZXl3b3JkIjoiIiwiYWRzX2N1cnNvcl9jYWNoZV9rZXkiOm51bGwsInZpc3VhbF9haXNsZXNfaW5zZXJ0aW9uX2luZGV4IjpudWxsLCJiYXNlQ3Vyc29yIjp7InBhZ2VfaWQiOiIiLCJwYWdlX3R5cGUiOiJOT1RfQVBQTElDQUJMRSIsImN1cnNvcl92ZXJzaW9uIjoiRkFDRVQifSwidmVydGljYWxfbmFtZXMiOnt9LCJpdGVtX2lkcyI6W10sIm1lcmNoYW50X3N1cHBsaWVkX2lkcyI6W10sImlzX291dF9vZl9zdG9jayI6bnVsbCwibWVudV9pZCI6bnVsbCwidHJhY2tpbmciOm51bGwsImRpZXRhcnlfdGFnIjpudWxsLCJvcmlnaW5fdGl0bGUiOm51bGwsInJhbmtlZF9yZW1haW5pbmdfY29sbGVjdGlvbl9pZHMiOm51bGwsInByZXZpb3VzbHlfc2Vlbl9jb2xsZWN0aW9uX2lkcyI6W10sInByZWNoZWNrb3V0X2J1bmRsZV9zZWFyY2hfaW5mbyI6bnVsbCwidG90YWxfaXRlbXNfb2Zmc2V0IjowLCJ0b3RhbF9hZHNfcHJldmlvdXNseV9ibGVuZGVkIjowLCJ2ZXJ0aWNhbF90aXRsZSI6bnVsbCwibXVsdGlfc3RvcmVfZW50aXRpZXMiOltdLCJjdXJzb3JWZXJzaW9uIjoiRkFDRVRfQ09OVEVOVF9PRkZTRVQiLCJwYWdlSWQiOiIiLCJwYWdlVHlwZSI6Ik5PVF9BUFBMSUNBQkxFIn0=',
+            'REALTIME_EVENTS': '[]',
+            'CURSOR': 'eyJvZmZzZXQiOjAsImNvbnRlbnRfaWRzIjpbXSwicmVxdWVzdF9wYXJlbnRfaWQiOiIiLCJyZXF1ZXN0X2NoaWxkX2lkIjoiIiwicmVxdWVzdF9jaGlsZF9jb21wb25lbnRfaWQiOiIiLCJjcm9zc192ZXJ0aWNhbF9wYWdlX3R5cGUiOiJIT01FUEFHRSIsInBhZ2Vfc3RhY2tfdHJhY2UiOltdLCJ2ZXJ0aWNhbF9pZHMiOlsxMDMsMywyLDE3NCwzNywxMzksMTQ2LDEzNiw3MCwyNjgsMjQxLDIzNSwyMzYsMTEwMDAxLDQsMjM4LDI0MywyODIsMTEwMDE2LDEwMDMzM10sInZlcnRpY2FsX2NvbnRleHRfaWQiOm51bGwsImxheW91dF9vdmVycmlkZSI6IlVOU1BFQ0lGSUVEIiwic2luZ2xlX3N0b3JlX2lkIjpudWxsLCJzZWFyY2hfaXRlbV9jYXJvdXNlbF9jdXJzb3IiOm51bGwsImNhdGVnb3J5X2lkcyI6W10sImNvbGxlY3Rpb25faWRzIjpbXSwiZGRfcGxhY2VfaWRzIjpbImMyNjc5NjAzLTg4OGYtNDI0NC1iZTcxLTYzZDc5NmU4MGNiMCIsImQxYzRhZjBjLTJmNzMtNDljNC05YzkzLWM1OWE4YzMwODcyNSJdLCJuZXh0X3BhZ2VfY2FjaGVfa2V5IjoiVkVSVElDQUw6MTk1NDQyMDg1OjEyMTFjNzMzMWQ1ZmZlMmY6MTo4MGZkNWFmMS0yOGZlLTQ3YzctYjljNS0zZTE2MGU1OGRhMmY6TFo0IiwiaXNfcGFnaW5hdGlvbl9mYWxsYmFjayI6bnVsbCwic291cmNlX3BhZ2VfdHlwZSI6bnVsbCwiZ2VvX3R5cGUiOiIiLCJnZW9faWQiOiIiLCJrZXl3b3JkIjoiIiwiYWRzX2N1cnNvcl9jYWNoZV9rZXkiOm51bGwsInZpc3VhbF9haXNsZXNfaW5zZXJ0aW9uX2luZGV4IjpudWxsLCJiYXNlQ3Vyc29yIjp7InBhZ2VfaWQiOiIiLCJwYWdlX3R5cGUiOiJOT1RfQVBQTElDQUJMRSIsImN1cnNvcl92ZXJzaW9uIjoiRkFDRVQifSwidmVydGljYWxfbmFtZXMiOnt9LCJpdGVtX2lkcyI6W10sIm1lcmNoYW50X3N1cHBsaWVkX2lkcyI6W10sImlzX291dF9vZl9zdG9jayI6bnVsbCwibWVudV9pZCI6bnVsbCwidHJhY2tpbmciOm51bGwsImRpZXRhcnlfdGFnIjpudWxsLCJvcmlnaW5fdGl0bGUiOm51bGwsInJhbmtlZF9yZW1haW5pbmdfY29sbGVjdGlvbl9pZHMiOm51bGwsInByZXZpb3VzbHlfc2Vlbl9jb2xsZWN0aW9uX2lkcyI6W10sInByZWNoZWNrb3V0X2J1bmRsZV9zZWFyY2hfaW5mbyI6bnVsbCwidG90YWxfaXRlbXNfb2Zmc2V0IjowLCJ0b3RhbF9hZHNfcHJldmlvdXNseV9ibGVuZGVkIjowLCJ2ZXJ0aWNhbF90aXRsZSI6bnVsbCwibXVsdGlfc3RvcmVfZW50aXRpZXMiOltdLCJjdXJzb3JWZXJzaW9uIjoiRkFDRVRfQ09OVEVOVF9PRkZTRVQiLCJwYWdlSWQiOiIiLCJwYWdlVHlwZSI6Ik5PVF9BUFBMSUNBQkxFIn0=',
             'DEFAULT_VERBOSE': 'true',
             'MAX_VERBOSE_LINES': '100'
         }
@@ -1544,6 +1687,330 @@ Paste your token below (JWT prefix will be automatically removed):""",
                           "DoorDash Prod App preset applied!\n\n"
                           "⚠️ Note: You still need to set your Authorization Token\n"
                           "This preset includes production Android device IDs and latest session data.")
+    
+    def apply_experiments_preset(self):
+        """Apply the Dynamic Values Edge Service (Experiments) preset configuration"""
+        experiments_config = {
+            'API_BASE_URL': 'https://dynamic-values-edge-service.doordash.com',
+            'API_ENDPOINT_PATH': '/v1/experiments/',
+            'EXPERIENCE_ID': 'doordash',
+            'USER_AGENT': 'DoorDashConsumer/Android 16.0.0-prod-debug',
+            'CLIENT_VERSION': 'android v16.0.0-prod-debug b16000009',
+            'ACCEPT_LANGUAGE': 'en-US',
+            'USER_LOCALE': 'en-US',
+            'LATITUDE': '34.0282903',
+            'LONGITUDE': '-118.373421',
+            'SUBMARKET_ID': '1',
+            'DISTRICT_ID': '3',
+            'FACETS_VERSION': '4.0.0',
+            'FACETS_FEATURE_STORE': 'treatmentVariant3',
+            'BFF_ERROR_FORMAT': 'v2',
+            'SUPPORT_PARTNER_DASHPASS': 'true',
+            'SESSION_ID': '4e978b72-6fe4-46bc-8ab1-bf4dc15f044a-dd-and',
+            'CLIENT_REQUEST_ID': 'f2e5d745-6d07-4617-927a-bd7e9ef684e7-dd-and',
+            'CORRELATION_ID': '3d682d82-3ee7-4340-b45a-ca5e61d5c472-dd-and',
+            'DD_LOCATION_CONTEXT': 'eyJsYXQiOjM0LjAyODI5MDMsImxuZyI6LTExOC4zNzM0MjEsIm1hcmtldF9pZCI6IjIiLCJzdWJtYXJrZXRfaWQiOiIxIiwiZGlzdHJpY3RfaWQiOiIzIiwidGltZXpvbmUiOiJBbWVyaWNhL0xvc19BbmdlbGVzIiwiemlwY29kZSI6IjkwMDE2IiwiY291bnRyeV9zaG9ydF9uYW1lIjoiVVMiLCJjaXR5IjoiTG9zIEFuZ2VsZXMiLCJzdGF0ZSI6IkNBIiwiY29uc3VtZXJfYWRkcmVzc19saW5rX2lkIjoiMTQ1NTEyMzQxMiIsImFkZHJlc3NfaWQiOiIzNDUyMzM0MjkiLCJpc19ndWVzdF9jb25zdW1lciI6ZmFsc2V9',
+            'DD_IDS': '{"dd_device_id":"78158b794698adba","dd_delivery_correlation_id":"6823d337-a3cf-4072-81b3-aa6fcba69b8d","dd_login_id":"lx_d16f81d2-773c-4f06-9997-b0de82bfbf32","dd_session_id":"sx_eb41331c-72f7-4b26-bba4-1e58f7ba6566","dd_android_id":"78158b794698adba","dd_android_advertising_id":"29804a87-b1f8-4db9-be15-a25ec4606c91"}',
+            'COOKIE': '__cf_bm=_DHaY3P7NuK95vuimOfTDAeBOcpBYH3mHaZ6Ia9wX6s-1754600424-1.0.1.1-HhYoMjoYVDwBBmEPJlEeB9IH0OBHGz3meHRXhZ0_KIR0XKu6eCnm8BpKrK9uMAW5QYsvAHN0udFsYdTxhGwkw2IhJsiSjrn2_boP9AZzQHw; dd_country_shortname=US; dd_market_id=2',
+            'REALTIME_EVENTS': '{}',  # This endpoint uses POST body instead
+            'DEFAULT_VERBOSE': 'true',
+            'MAX_VERBOSE_LINES': '100'
+        }
+        
+        # Update config and GUI variables
+        for key, value in experiments_config.items():
+            self.config[key] = value
+            if key in self.config_vars:
+                self.config_vars[key].set(value)
+        
+        self.refresh_config_display()
+        self.close_api_presets_modal()
+        messagebox.showinfo("Preset Applied", 
+                           "✅ Dynamic Values Edge Service (Experiments) configuration applied!\n\n" +
+                           "This preset configures the experiments endpoint to fetch feature flags and A/B tests.")
+    
+    def apply_ios_prod_preset(self):
+        """Apply iOS Production client configuration"""
+        ios_config = {
+            'USER_AGENT': 'DoordashConsumer/7.26.1 (iPhone; iOS 18.5; Scale/3.0)',
+            'CLIENT_VERSION': 'ios v7.26.1'
+        }
+        
+        # Update config dictionary
+        for key, value in ios_config.items():
+            self.config[key] = value
+            
+        # Update GUI variables
+        for key, value in ios_config.items():
+            if key in self.config_vars:
+                self.config_vars[key].set(value)
+        
+        self.update_status("Applied iOS Production client configuration")
+        messagebox.showinfo("iOS Prod Applied", 
+                          "📱 iOS Production client configuration applied!\n\n"
+                          "✅ User Agent: DoordashConsumer/7.26.1 (iPhone; iOS 18.5; Scale/3.0)\n"
+                          "✅ Client Version: ios v7.26.1")
+    
+    def apply_android_prod_preset(self):
+        """Apply Android Production client configuration"""
+        android_config = {
+            'USER_AGENT': 'DoorDashConsumer/Android 15.227.5',
+            'CLIENT_VERSION': 'android v15.227.5'
+        }
+        
+        # Update config dictionary
+        for key, value in android_config.items():
+            self.config[key] = value
+            
+        # Update GUI variables
+        for key, value in android_config.items():
+            if key in self.config_vars:
+                self.config_vars[key].set(value)
+        
+        self.update_status("Applied Android Production client configuration")
+        messagebox.showinfo("Android Prod Applied", 
+                          "🤖 Android Production client configuration applied!\n\n"
+                          "✅ User Agent: DoorDashConsumer/Android 15.227.5\n"
+                          "✅ Client Version: android v15.227.5")
+    
+    def apply_android_debug_preset(self):
+        """Apply Android Debug client configuration"""
+        android_debug_config = {
+            'USER_AGENT': 'DoorDashConsumer/Android 16.0.0-prod-debug',
+            'CLIENT_VERSION': 'android v16.0.0-prod-debug b16000009'
+        }
+        
+        # Update config dictionary
+        for key, value in android_debug_config.items():
+            self.config[key] = value
+            
+        # Update GUI variables
+        for key, value in android_debug_config.items():
+            if key in self.config_vars:
+                self.config_vars[key].set(value)
+        
+        self.update_status("Applied Android Debug client configuration")
+        messagebox.showinfo("Android Debug Applied", 
+                          "🛠️ Android Debug client configuration applied!\n\n"
+                          "✅ User Agent: DoorDashConsumer/Android 16.0.0-prod-debug\n"
+                          "✅ Client Version: android v16.0.0-prod-debug b16000009")
+    
+    def apply_web_chrome_preset(self):
+        """Apply Web Chrome client configuration"""
+        web_chrome_config = {
+            'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'CLIENT_VERSION': ''
+        }
+        
+        # Update config dictionary
+        for key, value in web_chrome_config.items():
+            self.config[key] = value
+            
+        # Update GUI variables
+        for key, value in web_chrome_config.items():
+            if key in self.config_vars:
+                self.config_vars[key].set(value)
+        
+        self.update_status("Applied Web Chrome client configuration")
+        messagebox.showinfo("Web Chrome Applied", 
+                          "🌐 Web Chrome client configuration applied!\n\n"
+                          "✅ User Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36\n"
+                          "✅ Client Version: (cleared)")
+    
+    def apply_sf_office_preset(self):
+        """Apply SF Office location configuration"""
+        sf_office_config = {
+            'LATITUDE': '37.78511',
+            'LONGITUDE': '-122.39574'
+        }
+        
+        # Update config dictionary
+        for key, value in sf_office_config.items():
+            self.config[key] = value
+            
+        # Update GUI variables
+        for key, value in sf_office_config.items():
+            if key in self.config_vars:
+                self.config_vars[key].set(value)
+        
+        self.update_status("Applied SF Office location configuration")
+        messagebox.showinfo("SF Office Applied", 
+                          "🏢 SF Office location configuration applied!\n\n"
+                          "📍 Address: 303 2nd Street, Suite 800, San Francisco CA\n"
+                          "🗺️ Location: Marathon Plaza\n"
+                          "✅ Latitude: 37.78511° N\n"
+                          "✅ Longitude: -122.39574° W")
+    
+    def apply_ny_office_preset(self):
+        """Apply NY Office location configuration"""
+        ny_office_config = {
+            'LATITUDE': '40.7410',
+            'LONGITUDE': '-73.9902'
+        }
+        
+        # Update config dictionary
+        for key, value in ny_office_config.items():
+            self.config[key] = value
+            
+        # Update GUI variables
+        for key, value in ny_office_config.items():
+            if key in self.config_vars:
+                self.config_vars[key].set(value)
+        
+        self.update_status("Applied NY Office location configuration")
+        messagebox.showinfo("NY Office Applied", 
+                          "🗽 NY Office location configuration applied!\n\n"
+                          "📍 Address: 200 5th Avenue, New York, NY 10010\n"
+                          "🗺️ Location: Flatiron District\n"
+                          "✅ Latitude: 40.7410° N\n"
+                          "✅ Longitude: -73.9902° W")
+    
+    def parse_experiments_response(self, response_data):
+        """Parse experiments response and format for display"""
+        try:
+            if not isinstance(response_data, dict):
+                return "⚠️ Response is not in expected JSON format"
+            
+            experiments = response_data.get('experiments', [])
+            if not experiments:
+                return "⚠️ No experiments found in response"
+            
+            result = []
+            result.append("🧪 EXPERIMENTS ANALYSIS")
+            result.append("=" * 50)
+            result.append(f"📊 Total Experiments: {len(experiments)}")
+            result.append("")
+            
+            treatment_count = 0
+            control_count = 0
+            other_count = 0
+            
+            for i, exp in enumerate(experiments, 1):
+                name = exp.get('name', 'Unknown')
+                value = exp.get('value', 'N/A')
+                exposure_enabled = exp.get('exposure_enabled', False)
+                exposure_context = exp.get('exposure_context', {})
+                
+                result.append(f"🔬 Experiment #{i}: {name}")
+                result.append(f"   💡 Value: {value}")
+                result.append(f"   📈 Exposure Enabled: {exposure_enabled}")
+                
+                if exposure_context:
+                    tag = exposure_context.get('tag', 'unknown')
+                    distribution = exposure_context.get('distribution', 'unknown')
+                    segment = exposure_context.get('segment', 'unknown')
+                    bucket_key = exposure_context.get('bucket_key', 'unknown')
+                    
+                    result.append(f"   🎯 Assignment: {tag}")
+                    result.append(f"   📋 Distribution: {distribution}")
+                    result.append(f"   👥 Segment: {segment}")
+                    result.append(f"   🔑 Bucket Key: {bucket_key}")
+                    
+                    # Count assignments
+                    if 'treatment' in tag.lower():
+                        treatment_count += 1
+                    elif 'control' in tag.lower():
+                        control_count += 1
+                    else:
+                        other_count += 1
+                else:
+                    # If no exposure context, check the value for assignment
+                    value_str = str(value).lower()
+                    if value_str in ['true', 'treatment', 'treatment1', 'treatment2', 'treatment3']:
+                        treatment_count += 1
+                        result.append(f"   🎯 Assignment: treatment (inferred from value)")
+                    elif value_str in ['false', 'control']:
+                        control_count += 1
+                        result.append(f"   🎯 Assignment: control (inferred from value)")
+                    else:
+                        other_count += 1
+                        result.append(f"   🎯 Assignment: {value} (other)")
+                
+                result.append("")
+            
+            # Summary section
+            result.append("📈 ASSIGNMENT SUMMARY")
+            result.append("=" * 25)
+            result.append(f"🟢 Treatment Variants: {treatment_count}")
+            result.append(f"🔵 Control Variants: {control_count}")
+            result.append(f"🟡 Other Assignments: {other_count}")
+            result.append("")
+            result.append(f"📊 Treatment Rate: {treatment_count}/{len(experiments)} ({(treatment_count/len(experiments)*100):.1f}%)")
+            
+            return "\n".join(result)
+            
+        except Exception as e:
+            return f"❌ Error parsing experiments: {str(e)}"
+    
+    def extract_carousel_titles(self, response_data):
+        """Extract carousel titles from store_carousel components in nested JSON structure"""
+        carousels = []
+        try:
+            if response_data:
+                # Recursively search through the entire JSON structure
+                self.find_store_carousels_recursive(response_data, carousels)
+                            
+        except Exception as e:
+            print(f"Error extracting carousel titles: {e}")
+            
+        return carousels
+        
+    def find_store_carousels_recursive(self, obj, carousels):
+        """Recursively search through JSON structure to find store carousel components"""
+        if isinstance(obj, dict):
+            # Check if this object is a store carousel
+            if self.is_store_carousel(obj):
+                carousel_info = self.extract_store_carousel_info(obj)
+                if carousel_info:
+                    carousels.append(carousel_info)
+            
+            # Recursively search through all dictionary values
+            for value in obj.values():
+                self.find_store_carousels_recursive(value, carousels)
+                
+        elif isinstance(obj, list):
+            # Recursively search through all list items
+            for item in obj:
+                self.find_store_carousels_recursive(item, carousels)
+        
+    def is_store_carousel(self, item):
+        """Check if item is a store_carousel component"""
+        try:
+            item_id = item.get('id', '')
+            component = item.get('component', {})
+            
+            # Check for carousel.standard:store_carousel pattern
+            return (item_id.startswith('carousel.standard:store_carousel') and 
+                    component.get('id') == 'carousel.standard' and 
+                    component.get('category') == 'carousel')
+        except:
+            return False
+            
+    def extract_store_carousel_info(self, item):
+        """Extract all text information from a store carousel component"""
+        try:
+            carousel_info = {
+                'id': item.get('id', ''),
+                'component_id': item.get('component', {}).get('id', ''),
+                'component_category': item.get('component', {}).get('category', ''),
+                'text_fields': {}
+            }
+            
+            # Extract all text fields
+            text_obj = item.get('text', {})
+            if isinstance(text_obj, dict):
+                for key, value in text_obj.items():
+                    if isinstance(value, str) and value.strip():
+                        carousel_info['text_fields'][key] = value.strip()
+            
+            # Only return if we have text fields
+            if carousel_info['text_fields']:
+                return carousel_info
+                
+        except Exception as e:
+            print(f"Error extracting carousel info: {e}")
+            
+        return None
 
 def main():
     """Main function to run the GUI application"""
