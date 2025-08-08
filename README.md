@@ -310,8 +310,11 @@ For security, the default configuration sets the authorization token to `null`. 
 ### Setting Your Token
 
 1. **In GUI**: Click "🔑 Set Auth Token" or you'll be prompted on first request
+   - **Option 1 (Recommended)**: Use "🌐 Open Dev Console" to create a test consumer account
+   - **Option 2**: Capture from Charles Proxy or existing requests
 2. **Command Line**: Use `--token=YOUR_TOKEN` or `-t YOUR_TOKEN`
 3. **Config File**: Set `AUTHORIZATION_TOKEN='your_token'` in `config.env` (not recommended for shared repos)
+4. **Dev Console**: Visit [DoorDash Dev Console](https://devconsole.doordash.team/test-studio/test-accounts) to create test accounts and get JWTs
 
 ## 💡 Tips
 

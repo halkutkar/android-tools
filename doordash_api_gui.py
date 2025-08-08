@@ -10,6 +10,7 @@ import requests
 import json
 import threading
 import os
+import webbrowser
 from datetime import datetime
 import re
 
@@ -270,96 +271,14 @@ class DoorDashAPIGUI:
         """Validate that authorization token is set"""
         token = self.config.get('AUTHORIZATION_TOKEN', '')
         if not token or token.lower() == 'null' or not token.strip():
-            # Show token input dialog
-            self.set_auth_token()
+            # Show enhanced JWT error dialog
+            self.show_jwt_error_dialog("JWT Token Required", 
+                                     "A JWT authorization token is required to make API requests.")
             # Re-check after dialog
             token = self.config.get('AUTHORIZATION_TOKEN', '')
             if not token or token.lower() == 'null' or not token.strip():
                 raise Exception("Authorization token is required but not set")
                 
-    def set_auth_token(self):
-        """Show dialog to set authorization token"""
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Set Authorization Token")
-        dialog.geometry("600x400")
-        dialog.transient(self.root)
-        dialog.grab_set()
-        
-        # Center the dialog
-        dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (600 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (400 // 2)
-        dialog.geometry(f"600x400+{x}+{y}")
-        
-        # Main frame
-        main_frame = ttk.Frame(dialog, padding=20)
-        main_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Title
-        title_label = ttk.Label(main_frame, text="🔑 Set Authorization Token", 
-                               font=('Arial', 14, 'bold'))
-        title_label.pack(pady=(0, 20))
-        
-        # Instructions
-        instructions = ttk.Label(main_frame, text="""🔍 To find your JWT token:
-
-1. Open Charles Proxy and capture DoorDash API requests
-2. Look for the 'authorization' header in any request  
-3. Copy ONLY the part after 'JWT ' (without the JWT prefix)
-
-Example: authorization: JWT eyJhbGciOiJIUzI1NiJ9...
-Copy: eyJhbGciOiJIUzI1NiJ9...
-
-Paste your token below (JWT prefix will be automatically removed):""", 
-                               justify=tk.LEFT, wraplength=500)
-        instructions.pack(pady=(0, 20))
-        
-        # Token entry
-        token_label = ttk.Label(main_frame, text="Authorization Token:")
-        token_label.pack(anchor=tk.W)
-        
-        token_var = tk.StringVar()
-        token_entry = ttk.Entry(main_frame, textvariable=token_var, width=70, font=('Consolas', 10))
-        token_entry.pack(fill=tk.X, pady=(5, 20))
-        token_entry.focus()
-        
-        def save_token():
-            token = token_var.get().strip()
-            if token:
-                # Remove JWT prefix if present and clean up
-                if token.startswith('JWT '):
-                    token = token[4:].strip()
-                elif token.startswith('jwt '):
-                    token = token[4:].strip()
-                
-                self.config['AUTHORIZATION_TOKEN'] = token
-                
-                # Update the GUI variable if it exists
-                if 'AUTHORIZATION_TOKEN' in self.config_vars:
-                    self.config_vars['AUTHORIZATION_TOKEN'].set(token)
-                
-                # Update warning banner
-                self.update_warning_banner()
-                
-                dialog.destroy()
-                messagebox.showinfo("Token Set", "✅ Authorization token has been set successfully!")
-            else:
-                messagebox.showerror("Invalid Token", "Please enter a valid authorization token.")
-        
-        def cancel():
-            dialog.destroy()
-        
-        # Buttons
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(fill=tk.X, pady=(20, 0))
-        
-        ttk.Button(button_frame, text="💾 Save Token", command=save_token, 
-                  style='Accent.TButton').pack(side=tk.RIGHT, padx=(10, 0))
-        ttk.Button(button_frame, text="❌ Cancel", command=cancel).pack(side=tk.RIGHT)
-        
-        # Bind Enter key to save
-        dialog.bind('<Return>', lambda e: save_token())
-        
     def refresh_config_display(self):
         """Refresh the configuration display section"""
         # Simply update the config variables in the GUI if they exist
@@ -1089,8 +1008,9 @@ Paste your token below (JWT prefix will be automatically removed):""",
         """Validate that authorization token is set"""
         token = self.config.get('AUTHORIZATION_TOKEN', '')
         if not token or token.lower() == 'null' or not token.strip():
-            # Show token input dialog
-            self.set_auth_token()
+            # Show enhanced JWT error dialog
+            self.show_jwt_error_dialog("JWT Token Required", 
+                                     "A JWT authorization token is required to make API requests.")
             # Re-check after dialog
             token = self.config.get('AUTHORIZATION_TOKEN', '')
             if not token or token.lower() == 'null' or not token.strip():
@@ -1120,18 +1040,31 @@ Paste your token below (JWT prefix will be automatically removed):""",
         title_label.pack(pady=(0, 20))
         
         # Instructions
-        instructions = ttk.Label(main_frame, text="""🔍 To find your JWT token:
+        instructions = ttk.Label(main_frame, text="""🔍 To get a JWT token:
 
-1. Open Charles Proxy and capture DoorDash API requests
-2. Look for the 'authorization' header in any request  
-3. Copy ONLY the part after 'JWT ' (without the JWT prefix)
+Option 1: Create a test consumer (recommended)
+• Go to DoorDash Dev Console and create a test account
+• Use the generated JWT token from there
+
+Option 2: Capture from existing requests
+• Open Charles Proxy and capture DoorDash API requests
+• Look for the 'authorization' header in any request  
+• Copy ONLY the part after 'JWT ' (without the JWT prefix)
 
 Example: authorization: JWT eyJhbGciOiJIUzI1NiJ9...
 Copy: eyJhbGciOiJIUzI1NiJ9...
 
 Paste your token below (JWT prefix will be automatically removed):""", 
                                justify=tk.LEFT, wraplength=500)
-        instructions.pack(pady=(0, 20))
+        instructions.pack(pady=(0, 15))
+        
+        # Dev Console button
+        dev_console_frame = ttk.Frame(main_frame)
+        dev_console_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        ttk.Button(dev_console_frame, text="🌐 Open Dev Console", 
+                  command=self.open_dev_console,
+                  style='Accent.TButton').pack()
         
         # Token entry
         token_label = ttk.Label(main_frame, text="Authorization Token:")
@@ -1210,8 +1143,8 @@ Paste your token below (JWT prefix will be automatically removed):""",
         try:
             # Validate auth token
             if not self.config.get('AUTHORIZATION_TOKEN'):
-                messagebox.showwarning("Token Required", 
-                                     "Please set an authorization token first using '🔑 Set Auth Token'")
+                self.show_jwt_error_dialog("Token Required for cURL Export", 
+                                         "A JWT authorization token is required to generate the cURL command.")
                 return
             
             # Build the same URL and parameters as make_request
@@ -1425,6 +1358,84 @@ Paste your token below (JWT prefix will be automatically removed):""",
         # Focus on the text area for easy selection
         curl_text.focus_set()
         curl_text.tag_add(tk.SEL, "1.0", tk.END)  # Select all text
+        
+    def open_dev_console(self):
+        """Open DoorDash Dev Console for creating test accounts and getting JWTs"""
+        try:
+            webbrowser.open("https://devconsole.doordash.team/test-studio/test-accounts")
+        except Exception as e:
+            messagebox.showerror("Browser Error", f"Failed to open Dev Console: {str(e)}")
+    
+    def show_jwt_error_dialog(self, title, message):
+        """Show JWT error dialog with Dev Console and Set Token options"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title(title)
+        dialog.geometry("500x300")
+        dialog.resizable(False, False)
+        
+        # Make dialog modal
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        # Center the dialog
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (250)
+        y = (dialog.winfo_screenheight() // 2) - (150)
+        dialog.geometry(f"500x300+{x}+{y}")
+        
+        # Main frame
+        main_frame = ttk.Frame(dialog, padding=20)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Error icon and title
+        title_frame = ttk.Frame(main_frame)
+        title_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        title_label = ttk.Label(title_frame, text=f"🔑 {title}", 
+                               font=('Arial', 14, 'bold'))
+        title_label.pack()
+        
+        # Message
+        message_label = ttk.Label(main_frame, text=message, 
+                                 font=('Arial', 11), justify=tk.CENTER)
+        message_label.pack(pady=(0, 20))
+        
+        # Instructions
+        instructions = ttk.Label(main_frame, 
+                                text="💡 If you don't have a JWT token, you can create a test consumer account:", 
+                                font=('Arial', 10), justify=tk.CENTER)
+        instructions.pack(pady=(0, 20))
+        
+        # Buttons frame
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        def open_dev_console_and_close():
+            self.open_dev_console()
+            dialog.destroy()
+        
+        def set_token_and_close():
+            dialog.destroy()
+            self.set_auth_token()
+        
+        def close_dialog():
+            dialog.destroy()
+        
+        # Dev Console button (primary action)
+        ttk.Button(button_frame, text="🌐 Open Dev Console", 
+                  command=open_dev_console_and_close,
+                  style='Accent.TButton').pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Set Token button
+        ttk.Button(button_frame, text="🔑 Set Existing Token", 
+                  command=set_token_and_close).pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Close button
+        ttk.Button(button_frame, text="❌ Cancel", 
+                  command=close_dialog).pack(side=tk.RIGHT)
+        
+        # Bind Escape key to close
+        dialog.bind('<Escape>', lambda e: close_dialog())
         
     def save_configuration(self):
         """Save configuration changes to memory"""
