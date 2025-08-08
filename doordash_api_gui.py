@@ -241,6 +241,10 @@ class DoorDashAPIGUI:
         ttk.Button(controls_frame, text="🧹 Clear Response", 
                   command=self.clear_response).pack(side=tk.LEFT, padx=(0, 10))
         
+        # Export as curl button
+        ttk.Button(controls_frame, text="📋 Export as cURL", 
+                  command=self.export_as_curl).pack(side=tk.LEFT, padx=(0, 10))
+        
         # Verbose mode checkbox
         self.verbose_var = tk.BooleanVar(value=True)  # Default to verbose mode
         ttk.Checkbutton(controls_frame, text="Verbose Output", 
@@ -1200,6 +1204,227 @@ Paste your token below (JWT prefix will be automatically removed):""",
         self.raw_display.delete('1.0', tk.END)
         self.experiments_display.delete('1.0', tk.END)
         self.update_status("Response cleared")
+        
+    def export_as_curl(self):
+        """Export the current API request as a curl command"""
+        try:
+            # Validate auth token
+            if not self.config.get('AUTHORIZATION_TOKEN'):
+                messagebox.showwarning("Token Required", 
+                                     "Please set an authorization token first using '🔑 Set Auth Token'")
+                return
+            
+            # Build the same URL and parameters as make_request
+            url = f"{self.config.get('API_BASE_URL', '')}{self.config.get('API_ENDPOINT_PATH', '')}"
+            
+            # Use different parameter formats based on the endpoint
+            endpoint_path = self.config.get('API_ENDPOINT_PATH', '')
+            if 'unified-gateway' in self.config.get('API_BASE_URL', '') or 'realtime_recommendation' in endpoint_path:
+                # Unified Gateway format
+                params = {
+                    "common_fields.lat": self.config.get("LATITUDE", ""),
+                    "common_fields.lng": self.config.get("LONGITUDE", ""),
+                    "common_fields.submarket_id": self.config.get("SUBMARKET_ID", ""),
+                    "common_fields.district_id": self.config.get("DISTRICT_ID", "")
+                }
+            else:
+                # Consumer BFF format (homepage, feed/me, etc.)
+                params = {
+                    "lat": self.config.get("LATITUDE", ""),
+                    "lng": self.config.get("LONGITUDE", "")
+                }
+            
+            # Add cursor parameter if configured and not null
+            cursor = self.config.get("CURSOR", "")
+            if cursor and cursor.lower() != "null":
+                params["cursor"] = cursor
+            
+            # Legacy: Also check if cursor exists in realtime events (for backward compatibility)
+            realtime_events = self.config.get("REALTIME_EVENTS", "")
+            if "cursor=" in realtime_events and not cursor:
+                try:
+                    import re
+                    cursor_match = re.search(r'cursor=([^&\s]+)', realtime_events)
+                    if cursor_match:
+                        params["cursor"] = cursor_match.group(1)
+                except:
+                    pass
+            
+            # Build headers (same as make_request)
+            headers = {
+                "Host": self.config.get('API_BASE_URL', '').replace('https://', '').replace('http://', ''),
+                "Cookie": self.config.get("COOKIE", ""),
+                "authorization": f"JWT {self.config.get('AUTHORIZATION_TOKEN', '')}",
+                "accept-language": self.config.get("ACCEPT_LANGUAGE", ""),
+                "x-session-id": self.config.get("SESSION_ID", ""),
+                "x-client-request-id": self.config.get("CLIENT_REQUEST_ID", ""),
+                "x-correlation-id": self.config.get("CORRELATION_ID", ""),
+                "client-version": self.config.get("CLIENT_VERSION", ""),
+                "user-agent": self.config.get("USER_AGENT", ""),
+                "x-experience-id": self.config.get("EXPERIENCE_ID", ""),
+                "x-support-partner-dashpass": self.config.get("SUPPORT_PARTNER_DASHPASS", ""),
+                "dd-ids": self.config.get("DD_IDS", ""),
+                "dd-user-locale": self.config.get("USER_LOCALE", ""),
+                "x-bff-error-format": self.config.get("BFF_ERROR_FORMAT", ""),
+                "dd-location-context": self.config.get("DD_LOCATION_CONTEXT", ""),
+                "x-realtime-recommendation-events": self.config.get("REALTIME_EVENTS", "").split(' cursor=')[0] if ' cursor=' in self.config.get("REALTIME_EVENTS", "") else self.config.get("REALTIME_EVENTS", ""),
+                "x-facets-version": self.config.get("FACETS_VERSION", ""),
+                "x-facets-feature-store": self.config.get("FACETS_FEATURE_STORE", "")
+            }
+            
+            # Add Consumer BFF specific headers if using Consumer BFF endpoints
+            if 'consumer-mobile-bff' in self.config.get('API_BASE_URL', ''):
+                headers.update({
+                    "x-facets-feature-item-carousel": "true",
+                    "x-facets-feature-backend-driven-badges": "true", 
+                    "x-facets-feature-no-tile": "true",
+                    "x-facets-feature-item-steppers": "true",
+                    "x-facets-feature-quick-add-stepper-variant": "true",
+                    "x-facets-feature-store-carousel-redesign-round-1": "treatmentVariant2",
+                    "x-facets-feature-store-cell-redesign-round-3": "treatmentVariant3",
+                    "x-gifting-intent": "false",
+                    "traceparent": "00-0779dd623e69dfc82a93b7b553698d95-525a785c689917fe-00",
+                    "baggage": "dd-instrumentation.priority=1.0"
+                })
+            
+            # Remove empty headers
+            headers = {k: v for k, v in headers.items() if v}
+            
+            # Build query string
+            query_string = "&".join([f"{k}={v}" for k, v in params.items() if v])
+            full_url = f"{url}?{query_string}" if query_string else url
+            
+            # Check if this is the experiments endpoint (requires POST with JSON body)
+            if 'dynamic-values-edge-service' in self.config.get('API_BASE_URL', ''):
+                # Experiments endpoint uses POST with JSON body
+                headers["content-type"] = "application/json; charset=UTF-8"
+                
+                # Create the JSON body for experiments request
+                json_body = {
+                    "namespaces": [],
+                    "legacy_namespaces": [],
+                    "application": "consumer",
+                    "app_version": "16.0.0-prod-debug",
+                    "exposures_enabled": True,
+                    "os": "Android",
+                    "os_version": "16",
+                    "context": {
+                        "device_id": "78158b794698adba",
+                        "device_region": "US",
+                        "device_manufacturer": "Google",
+                        "device_model": "sdk_gphone64_arm64",
+                        "os_version": "36",
+                        "language": "en",
+                        "language_tag": "en-US",
+                        "saved_info_user_id": "196174870",
+                        "consumer_id": "195442085",
+                        "submarket_id": self.config.get("SUBMARKET_ID", "1"),
+                        "country_code": "US",
+                        "is_guest": "false",
+                        "team_id": "eef7656a-b0e1-4f34-a35e-4c3cc3f4a640",
+                        "user_id": "196174870"
+                    },
+                    "dv_names": [
+                        "mobile-feature-client-side-default",
+                        "mobile-feature-multifeature-holdout",
+                        "mobile-dv-telemetry-timeout-flag",
+                        "mobile-feature-fetch-by-dv-list",
+                        "android_async_dv_refresh_cutoff_time"
+                    ],
+                    "evaluation_options": {
+                        "reference_exposure_enabled": True,
+                        "client_side_default_enabled": False
+                    }
+                }
+                
+                # Build curl command for POST request
+                curl_cmd = f'curl -X POST "{url}" \\\n'
+                for key, value in headers.items():
+                    # Escape quotes in header values
+                    escaped_value = value.replace('"', '\\"')
+                    curl_cmd += f'  -H "{key}: {escaped_value}" \\\n'
+                curl_cmd += f'  -d \'{json.dumps(json_body, indent=2)}\' \\\n'
+                curl_cmd += f'  --compressed'
+            else:
+                # Build curl command for GET request
+                curl_cmd = f'curl -X GET "{full_url}" \\\n'
+                for key, value in headers.items():
+                    # Escape quotes in header values
+                    escaped_value = value.replace('"', '\\"')
+                    curl_cmd += f'  -H "{key}: {escaped_value}" \\\n'
+                curl_cmd += f'  --compressed'
+            
+            # Create a dialog to show the curl command
+            self.show_curl_dialog(curl_cmd)
+            
+        except Exception as e:
+            messagebox.showerror("Export Error", f"Failed to generate curl command: {str(e)}")
+    
+    def show_curl_dialog(self, curl_command):
+        """Show curl command in a dialog with copy functionality"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("📋 Export as cURL Command")
+        dialog.geometry("800x600")
+        dialog.resizable(True, True)
+        
+        # Make dialog modal
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        # Center the dialog
+        dialog.geometry("+%d+%d" % (self.root.winfo_rootx() + 50, self.root.winfo_rooty() + 50))
+        
+        # Main frame
+        main_frame = ttk.Frame(dialog)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text="📋 cURL Command", 
+                               font=('Arial', 14, 'bold'))
+        title_label.pack(pady=(0, 10))
+        
+        # Instructions
+        instructions = ttk.Label(main_frame, 
+                                text="Copy this command to run the API request from your terminal:",
+                                font=('Arial', 10))
+        instructions.pack(pady=(0, 10))
+        
+        # Text area with curl command
+        text_frame = ttk.Frame(main_frame)
+        text_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
+        
+        curl_text = scrolledtext.ScrolledText(text_frame, wrap=tk.WORD, 
+                                            font=('Consolas', 10), height=20)
+        curl_text.pack(fill=tk.BOTH, expand=True)
+        curl_text.insert('1.0', curl_command)
+        curl_text.config(state='normal')  # Keep editable so user can select/copy
+        
+        # Button frame
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X)
+        
+        def copy_to_clipboard():
+            dialog.clipboard_clear()
+            dialog.clipboard_append(curl_command)
+            dialog.update()  # Required for clipboard to work
+            messagebox.showinfo("Copied", "cURL command copied to clipboard!")
+        
+        def close_dialog():
+            dialog.destroy()
+        
+        # Buttons
+        ttk.Button(button_frame, text="📋 Copy to Clipboard", 
+                  command=copy_to_clipboard, 
+                  style='Accent.TButton').pack(side=tk.LEFT)
+        ttk.Button(button_frame, text="❌ Close", 
+                  command=close_dialog).pack(side=tk.RIGHT)
+        
+        # Bind Escape key to close
+        dialog.bind('<Escape>', lambda e: close_dialog())
+        
+        # Focus on the text area for easy selection
+        curl_text.focus_set()
+        curl_text.tag_add(tk.SEL, "1.0", tk.END)  # Select all text
         
     def save_configuration(self):
         """Save configuration changes to memory"""

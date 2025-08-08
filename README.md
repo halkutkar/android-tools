@@ -119,6 +119,7 @@ If the app doesn't launch:
 - ✅ Configurable verbose mode for detailed responses
 - ✅ Auto-parsing of carousel titles
 - ✅ Clear response function
+- ✅ **Export as cURL**: Generate ready-to-use curl commands for terminal/debugging
 - ✅ Uses current GUI configuration values for requests
 
 ### Response Display
@@ -241,6 +242,7 @@ The GUI now includes a comprehensive configuration editor with organized tabs:
 
 5. **Make API Request**
    - Click "🚀 Make API Request" (uses current GUI settings)
+   - Or click "📋 Export as cURL" to generate a command for terminal use
    - Watch the progress bar during the request
    - View results in the tabbed interface
 
@@ -248,6 +250,12 @@ The GUI now includes a comprehensive configuration editor with organized tabs:
    - **Summary**: Quick overview of response status and metrics
    - **Raw Response**: Complete JSON data (if verbose enabled)
    - **Carousel Titles**: Parsed and numbered list of found carousels
+
+7. **Export for Terminal Use**
+   - Click "📋 Export as cURL" to generate a curl command
+   - Copy to clipboard for use in terminal or scripts
+   - Includes all current headers, parameters, and authentication
+   - Handles both GET and POST requests (experiments endpoint)
 
 ### Command Line Script
 
