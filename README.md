@@ -73,6 +73,37 @@ For the easiest experience, create a native macOS app:
    - Drag to Dock for quick access
    - Use Spotlight search: `⌘ + Space` → "DoorDash API GUI"
 
+### 🛠️ macOS App Troubleshooting
+
+If the app doesn't launch:
+
+1. **Check Dependencies**: Ensure Python 3 and required packages are installed
+   ```bash
+   python3 --version
+   pip3 install requests
+   ```
+
+2. **Run from Terminal First**: Test the script version works
+   ```bash
+   cd /path/to/scripts
+   ./launch_gui.sh
+   ```
+
+3. **Permission Issues**: If you get permission denied errors
+   ```bash
+   # Re-create the app bundle
+   ./create_mac_app.sh
+   
+   # Make sure the executable is set correctly  
+   chmod +x "DoorDash API GUI.app/Contents/MacOS/DoorDash API GUI"
+   ```
+
+4. **Manual Launch**: You can always run directly:
+   ```bash
+   cd /path/to/scripts
+   python3 doordash_api_gui.py
+   ```
+
 ## 🎯 Features
 
 ### Advanced Configuration Management

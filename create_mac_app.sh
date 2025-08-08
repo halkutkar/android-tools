@@ -43,14 +43,24 @@ EOF
 cat > "${APP_NAME}.app/Contents/MacOS/DoorDash API GUI" << 'EOF'
 #!/bin/bash
 
-# Get the directory containing this app bundle
+# DoorDash API GUI App Bundle Launcher
+# This script launches the DoorDash API GUI from the macOS app bundle
+
+# Get the directory containing this app bundle  
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
 
 # Change to the scripts directory
 cd "$APP_DIR"
 
-# Launch the GUI
-./launch_gui.sh
+# Set up environment
+export PYTHONPATH="$APP_DIR:$PYTHONPATH"
+
+# Try to use the virtual environment Python, fall back to system Python
+if [[ -f "venv/bin/python3" ]]; then
+    venv/bin/python3 doordash_api_gui.py
+else
+    python3 doordash_api_gui.py
+fi
 EOF
 
 # Make the executable script executable
