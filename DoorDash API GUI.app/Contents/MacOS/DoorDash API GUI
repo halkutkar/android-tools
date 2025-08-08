@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Get the directory containing this app bundle
+APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
+
+# Change to the scripts directory
+cd "$APP_DIR"
+
+# Launch the GUI
+./launch_gui.sh

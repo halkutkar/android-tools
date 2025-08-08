@@ -2,14 +2,43 @@
 
 A modern Python GUI application for testing the DoorDash realtime recommendation API with an intuitive interface.
 
+## ✨ Latest Features
+
+### 🎯 Client Configuration Presets
+- **📱 iOS Prod**: Production iOS app configuration (v7.26.1)
+- **🤖 Android Prod**: Production Android app configuration (v15.227.5)
+- **🛠️ Android Debug**: Debug Android build configuration (v16.0.0)
+- **🌐 Web Chrome**: Browser-based testing with Chrome 138 user agent
+
+### 📍 Office Location Presets
+- **🏢 SF Office**: San Francisco office coordinates (303 2nd Street, Marathon Plaza)
+- **🗽 NY Office**: New York office coordinates (200 5th Avenue, Flatiron District)
+
+### 🔧 Enhanced API Controls
+- **Cursor Management**: Configurable pagination cursor for `/v3/feed/homepage` endpoint
+- **Conditional Parameters**: Smart parameter inclusion (only send cursor when configured)
+- **Improved Layout**: Larger interface (1500x1000px) with better space utilization
+
 ## 🚀 Quick Start
 
-### Option 1: Use the Launcher Script (Recommended)
+### Option 1: macOS App (Easiest)
+```bash
+# Create the macOS app bundle
+./create_mac_app.sh
+
+# Copy to Applications folder
+cp -r "DoorDash API GUI.app" /Applications/
+
+# Launch from Applications or Dock
+open /Applications/"DoorDash API GUI.app"
+```
+
+### Option 2: Use the Launcher Script
 ```bash
 ./launch_gui.sh
 ```
 
-### Option 2: Manual Launch
+### Option 3: Manual Launch
 ```bash
 # Activate virtual environment
 source venv/bin/activate
@@ -23,6 +52,26 @@ python3 doordash_api_gui.py
 - Python 3.7 or higher
 - macOS with tkinter support (usually included)
 - `config.env` file with API configuration
+
+## 🍎 macOS App Installation
+
+For the easiest experience, create a native macOS app:
+
+1. **Create the App Bundle**:
+   ```bash
+   ./create_mac_app.sh
+   ```
+
+2. **Install to Applications**:
+   ```bash
+   cp -r "DoorDash API GUI.app" /Applications/
+   ```
+
+3. **Launch Like Any Mac App**:
+   - Find "DoorDash API GUI" in Applications folder
+   - Double-click to launch
+   - Drag to Dock for quick access
+   - Use Spotlight search: `⌘ + Space` → "DoorDash API GUI"
 
 ## 🎯 Features
 
@@ -66,6 +115,8 @@ The GUI provides three organized tabs for viewing results:
 - 🔄 Progress indicators during requests
 - ❌ Error handling with user-friendly messages
 - 🖥️ Responsive layout that scales properly
+- 🚀 Enhanced UI with larger window size (1500x1000px)
+- ⚡ One-click preset configurations for common scenarios
 
 ## 🛠️ Technical Details
 
@@ -103,6 +154,11 @@ The GUI now includes a comprehensive configuration editor with organized tabs:
 - **Experience ID**: Application experience identifier
 - **User Agent**: Client user agent string
 - **Client Version**: Application version
+- **Client Presets**: One-click configurations for different platforms:
+  - 📱 **iOS Prod**: DoordashConsumer/7.26.1 (iPhone; iOS 18.5)
+  - 🤖 **Android Prod**: DoorDashConsumer/Android 15.227.5
+  - 🛠️ **Android Debug**: DoorDashConsumer/Android 16.0.0-prod-debug
+  - 🌐 **Web Chrome**: Chrome 138.0.0.0 browser user agent
 
 ### 📋 Headers Tab
 - **Cookies & Session**: HTTP cookies, session IDs, request IDs
@@ -110,13 +166,16 @@ The GUI now includes a comprehensive configuration editor with organized tabs:
 - **Localization**: Language and locale settings
 
 ### 📍 Location Tab
-- **Geographic Coordinates**: Latitude and longitude
+- **Geographic Coordinates**: Latitude and longitude with location presets:
+  - 🏢 **SF Office**: 303 2nd Street, San Francisco CA (Marathon Plaza)
+  - 🗽 **NY Office**: 200 5th Avenue, New York NY (Flatiron District)
 - **Market Information**: Submarket and district IDs
 - **Device & Context**: Device identifiers and location context
 
 ### ⚙️ Advanced Tab
 - **Events & Data**: Realtime events JSON configuration
-- **API Configuration**: Error formats, feature flags
+- **API Configuration**: Error formats, feature flags, pagination cursor
+- **Cursor Control**: Configurable cursor parameter for `/v3/feed/homepage` endpoint
 - **Display Settings**: Verbose mode defaults, output limits
 
 ### Configuration Management
