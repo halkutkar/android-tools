@@ -126,6 +126,40 @@ class DoorDashAPIGUI:
                                                            font=('Consolas', 10))
         self.experiments_display.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
+        # Output tab for YAML generation
+        self.output_tab = ttk.Frame(self.response_notebook)
+        self.response_notebook.add(self.output_tab, text="📄 Output")
+        
+        # Create a container for the output tab content
+        output_container = ttk.Frame(self.output_tab)
+        output_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Title and instructions
+        output_title = ttk.Label(output_container, text="📄 Experiment YAML Output", 
+                                font=('Arial', 14, 'bold'))
+        output_title.pack(pady=(0, 10))
+        
+        # Instructions
+        instructions_text = "Generated YAML configurations will appear here. Use the YAML Generator tab to create experiment configs."
+        ttk.Label(output_container, text=instructions_text, font=('Arial', 10), 
+                 foreground='gray').pack(pady=(0, 15))
+        
+        # YAML output text area
+        self.yaml_output_display = scrolledtext.ScrolledText(output_container, wrap=tk.WORD, 
+                                                           font=('Consolas', 10))
+        self.yaml_output_display.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        
+        # Control buttons
+        output_buttons_frame = ttk.Frame(output_container)
+        output_buttons_frame.pack(fill=tk.X, pady=(0, 5))
+        
+        ttk.Button(output_buttons_frame, text="📋 Copy to Clipboard", 
+                  command=self.copy_yaml_output).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(output_buttons_frame, text="🧹 Clear Output", 
+                  command=self.clear_yaml_output).pack(side=tk.LEFT)
+        ttk.Button(output_buttons_frame, text="🔄 Switch to YAML Generator", 
+                  command=self.switch_to_yaml_generator).pack(side=tk.RIGHT)
+        
         # Status bar
         self.create_status_bar(main_frame)
         
@@ -216,6 +250,8 @@ class DoorDashAPIGUI:
         self.create_headers_config_tab()
         self.create_location_config_tab()
         self.create_misc_config_tab()
+        self.create_experiment_config_tab()
+        self.create_yaml_generator_tab()
         
         # Config buttons frame
         config_buttons_frame = ttk.Frame(config_frame)
@@ -570,6 +606,717 @@ class DoorDashAPIGUI:
         
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+
+    def create_experiment_config_tab(self):
+        """Create a simple placeholder experiment config tab"""
+        exp_frame = ttk.Frame(self.config_notebook)
+        self.config_notebook.add(exp_frame, text="🧪 Experiments")
+        
+        # Simple placeholder content
+        placeholder_frame = ttk.Frame(exp_frame)
+        placeholder_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        title_label = ttk.Label(placeholder_frame, text="🧪 Experiment Configuration", 
+                               font=('Arial', 16, 'bold'))
+        title_label.pack(pady=(0, 20))
+        
+        info_text = """The experiment YAML generator has been moved to its own dedicated tab:
+
+📄 Look for the "YAML Generator" tab at the top of this window.
+
+This provides a better experience for creating experiment configurations with:
+• Step-by-step Unity content parsing
+• Manual field entry
+• Automatic YAML generation
+• Email validation
+• Copy to clipboard functionality"""
+        
+        ttk.Label(placeholder_frame, text=info_text, font=('Arial', 11), 
+                 justify=tk.LEFT).pack(anchor='w')
+
+    def create_yaml_generator_tab(self):
+        """Create the main YAML generator tab"""
+        yaml_frame = ttk.Frame(self.config_notebook)
+        self.config_notebook.add(yaml_frame, text="📄 YAML Generator")
+        
+        # Main container with padding
+        main_container = ttk.Frame(yaml_frame)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
+        
+        # Title
+        title_label = ttk.Label(main_container, text="📄 Experiment YAML Configuration Generator", 
+                               font=('Arial', 16, 'bold'))
+        title_label.pack(pady=(0, 20))
+        
+        # Button to open Unity content parser modal
+        parse_button_frame = ttk.Frame(main_container)
+        parse_button_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        ttk.Button(parse_button_frame, text="📄 Parse Unity Content", 
+                  command=self.open_unity_parser_modal,
+                  style='Accent.TButton').pack(side=tk.LEFT, padx=(0, 10))
+        
+        ttk.Label(parse_button_frame, text="Paste Unity experiment page content to auto-fill fields", 
+                 font=('Arial', 10), foreground='gray').pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Manual entry form (no tabs needed now)
+        form_frame = ttk.LabelFrame(main_container, text="📝 Experiment Configuration", padding=10)
+        form_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
+        
+        # Initialize experiment variables
+        self.exp_vars = {}
+        
+        self.create_manual_experiment_form(form_frame)
+        
+        # Action buttons
+        action_frame = ttk.Frame(main_container)
+        action_frame.pack(fill=tk.X, pady=(20, 0))
+        
+        ttk.Button(action_frame, text="🔄 Generate YAML", 
+                  command=self.generate_experiment_yaml,
+                  style='Accent.TButton').pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(action_frame, text="📄 View Output Tab", 
+                  command=self.switch_to_output_tab).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(action_frame, text="🧹 Clear All Fields", 
+                  command=self.clear_all_experiment_fields).pack(side=tk.LEFT)
+
+    def create_manual_experiment_form(self, parent):
+        """Create manual experiment entry form"""
+        # Scrollable frame
+        canvas = tk.Canvas(parent)
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        content_frame = ttk.Frame(scrollable_frame)
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
+        
+        # Experiment configuration fields
+        ttk.Label(content_frame, text="🔧 Basic Configuration", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
+        
+        self.exp_vars['key'] = self.create_experiment_field(content_frame, "Experiment Key", "key", 
+                                                           "e.g., cx_homepage_discovery_realtime_android_v3", width=60)
+        self.exp_vars['description'] = self.create_experiment_field(content_frame, "Description", "description", 
+                                                                   "Brief description of the experiment", width=60)
+        
+        ttk.Separator(content_frame, orient='horizontal').pack(fill=tk.X, pady=20)
+        
+        ttk.Label(content_frame, text="⚙️ Experiment Settings", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
+        
+        self.exp_vars['returnType'] = self.create_experiment_field(content_frame, "Return Type", "returnType", 
+                                                                   "Boolean or String", width=20)
+        self.exp_vars['defaultValue'] = self.create_experiment_field(content_frame, "Default Value", "defaultValue", 
+                                                                    "false (Boolean) or control (String)", width=20)
+        self.exp_vars['expiration'] = self.create_experiment_field(content_frame, "Expiration Date", "expiration", 
+                                                                  "Format: YYYY-MM-DD", width=30)
+        
+        # Add smart default value logic based on return type
+        def update_default_value(*args):
+            return_type = self.exp_vars['returnType'].get().strip().lower()
+            current_default = self.exp_vars['defaultValue'].get().strip()
+            
+            # Only auto-update if the field is empty or has a standard default
+            if not current_default or current_default.lower() in ['false', 'control', 'true']:
+                if 'string' in return_type:
+                    self.exp_vars['defaultValue'].set('control')
+                elif 'boolean' in return_type:
+                    self.exp_vars['defaultValue'].set('false')
+        
+        # Use trace_add for newer Tkinter versions, fallback to trace for older ones
+        try:
+            self.exp_vars['returnType'].trace_add('write', update_default_value)
+        except AttributeError:
+            self.exp_vars['returnType'].trace('w', update_default_value)
+        
+        ttk.Separator(content_frame, orient='horizontal').pack(fill=tk.X, pady=20)
+        
+        ttk.Label(content_frame, text="👤 Ownership & Metadata", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
+        
+        self.exp_vars['owner'] = self.create_experiment_field(content_frame, "Owner Email", "owner", 
+                                                             "Owner's email address", width=50)
+        
+        # Add real-time email validation for owner field
+        def validate_owner_email(*args):
+            email = self.exp_vars['owner'].get()
+            if email:
+                formatted_email = self.format_email(email)
+                if formatted_email != email:
+                    # Auto-format the email
+                    self.exp_vars['owner'].set(formatted_email)
+        
+        # Use trace_add for newer Tkinter versions, fallback to trace for older ones
+        try:
+            self.exp_vars['owner'].trace_add('write', validate_owner_email)
+        except AttributeError:
+            self.exp_vars['owner'].trace('w', validate_owner_email)
+        self.exp_vars['url'] = self.create_experiment_field(content_frame, "Unity URL", "url", 
+                                                           "Full Unity experiment URL", width=80)
+        self.exp_vars['type'] = self.create_experiment_field(content_frame, "Type", "type", 
+                                                            "Usually 'Experiment'", width=30)
+        self.exp_vars['group'] = self.create_experiment_field(content_frame, "Group", "group", 
+                                                             "e.g., DiscoveryExperience", width=40)
+        
+        # Set default values
+        self.exp_vars['returnType'].set('Boolean')
+        self.exp_vars['defaultValue'].set('false')
+        self.exp_vars['type'].set('Experiment')
+        self.exp_vars['group'].set('DiscoveryExperience')
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+
+
+    def create_experiment_field(self, parent, label, key, description="", width=50):
+        """Create an experiment configuration field"""
+        frame = ttk.Frame(parent)
+        frame.pack(fill=tk.X, pady=3)
+        
+        # Label
+        label_widget = ttk.Label(frame, text=f"{label}:", font=('Arial', 9, 'bold'), width=20)
+        label_widget.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Entry variable
+        var = tk.StringVar()
+        
+        # Entry widget
+        entry = ttk.Entry(frame, textvariable=var, width=width)
+        entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
+        
+        # Description label if provided
+        if description:
+            desc_label = ttk.Label(frame, text=description, font=('Arial', 8), 
+                                 foreground='gray')
+            desc_label.pack(side=tk.RIGHT)
+            
+        return var
+
+
+
+    def extract_fields_from_text(self, content):
+        """Extract experiment fields from Unity page text content"""
+        extracted_data = {}
+        lines = content.split('\n')
+        
+        # Clean and normalize lines
+        clean_lines = [line.strip() for line in lines if line.strip()]
+        
+        # Extract experiment key (usually first line or after certain patterns)
+        for i, line in enumerate(clean_lines):
+            # Look for experiment key patterns - longer snake_case names
+            if re.match(r'^[a-z][a-z0-9_]*[a-z0-9]$', line) and len(line) > 5:
+                # Skip common non-experiment words
+                if line not in ['type', 'experiment', 'return', 'owner', 'vertical', 'consumer', 'last', 'updated', 'start', 'date', 'end', 'configure', 'test', 'monitor', 'debug', 'implement', 'history', 'details']:
+                    extracted_data['key'] = line
+                    break
+        
+        # Extract fields using keyword matching
+        for i, line in enumerate(clean_lines):
+            line_lower = line.lower()
+            
+            # Extract owner
+            if 'owner' in line_lower and i + 1 < len(clean_lines):
+                next_line = clean_lines[i + 1]
+                # Look for names or email addresses
+                if '@' in next_line or any(name_part in next_line.lower() for name_part in ['harsh', 'alkutkar']):
+                    formatted_email = self.format_email(next_line)
+                    extracted_data['owner'] = formatted_email
+            
+            # Extract type
+            if 'type' in line_lower and i + 1 < len(clean_lines):
+                next_line = clean_lines[i + 1]
+                if next_line.lower() in ['experiment', 'feature', 'config']:
+                    extracted_data['type'] = next_line
+            
+            # Extract return type for default value
+            if 'return type' in line_lower and i + 1 < len(clean_lines):
+                next_line = clean_lines[i + 1].lower()
+                if 'boolean' in next_line:
+                    extracted_data['defaultValue'] = 'false'  # Default for boolean experiments
+                elif 'string' in next_line:
+                    extracted_data['defaultValue'] = 'control'  # Default for string experiments
+                # Store the return type for later reference
+                extracted_data['returnType'] = next_line.title()  # Store as Boolean/String
+            
+            # Extract description from Problem Statement
+            if 'problem statement' in line_lower and i + 1 < len(clean_lines):
+                next_line = clean_lines[i + 1]
+                if len(next_line) > 20:  # Reasonable description length
+                    extracted_data['description'] = next_line
+            
+            # Extract dates
+            if any(date_keyword in line_lower for date_keyword in ['start date', 'end date', 'date']):
+                # Look for date patterns in current and next lines
+                for check_line in [line, clean_lines[i + 1] if i + 1 < len(clean_lines) else '']:
+                    # Find all dates in the line (YYYY-MM-DD format)
+                    date_matches = re.findall(r'(\d{4}-\d{2}-\d{2})', check_line)
+                    if date_matches:
+                        # If multiple dates found (start - end format), take the last one (end date)
+                        if len(date_matches) > 1:
+                            extracted_data['expiration'] = date_matches[-1]  # Last date is end date
+                        else:
+                            # Single date - check if it's an end date context
+                            if 'end' in line_lower or any(year in check_line for year in ['2026', '2027', '2028']):
+                                extracted_data['expiration'] = date_matches[0]
+                        break
+        
+        return extracted_data
+
+    def clear_content_text(self):
+        """Clear the content text area"""
+        self.content_text.delete(1.0, tk.END)
+
+    def validate_email(self, email):
+        """Validate email format and ensure it's a @doordash.com email"""
+        if not email:
+            return False, "Email is required"
+        
+        # Basic email format validation
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            return False, "Invalid email format"
+        
+        # Check for @doordash.com domain
+        if not email.lower().endswith('@doordash.com'):
+            return False, "Email must be a @doordash.com address"
+        
+        # Additional checks for proper DoorDash email format
+        local_part = email.split('@')[0]
+        
+        # Check if local part is reasonable (only letters, numbers, dots, and underscores)
+        if not re.match(r'^[a-zA-Z0-9._]+$', local_part):
+            return False, "Email contains invalid characters before @doordash.com"
+        
+        # Check for reasonable length
+        if len(local_part) < 2:
+            return False, "Email username is too short"
+        
+        if len(local_part) > 50:
+            return False, "Email username is too long"
+        
+        return True, "Valid email"
+
+    def format_email(self, input_text):
+        """Format and clean email input"""
+        if not input_text:
+            return ""
+        
+        # Clean the input
+        email = input_text.strip().lower()
+        
+        # If it looks like a name without @doordash.com, try to construct the email
+        if '@' not in email:
+            # Convert spaces to dots and remove special characters
+            cleaned_name = re.sub(r'[^a-zA-Z0-9\s.-]', '', email)
+            cleaned_name = re.sub(r'\s+', '.', cleaned_name.strip())
+            email = f"{cleaned_name}@doordash.com"
+        
+        # Fix common domain typos
+        email = re.sub(r'@doordash\.co$', '@doordash.com', email)
+        email = re.sub(r'@dd\.com$', '@doordash.com', email)
+        
+        return email
+
+    def generate_experiment_yaml(self):
+        """Generate YAML configuration from current form values"""
+        # Get all values from form
+        values = {}
+        for key, var in self.exp_vars.items():
+            values[key] = var.get().strip()
+        
+        # Validate required fields
+        required_fields = ['key', 'description', 'defaultValue', 'expiration', 'owner', 'url', 'type', 'group']
+        missing_fields = [field for field in required_fields if not values.get(field)]
+        
+        if missing_fields:
+            messagebox.showwarning("Missing Fields", 
+                                 f"Please fill in the following required fields:\n\n" + 
+                                 "\n".join([f"• {field}" for field in missing_fields]))
+            return
+        
+        # Validate email format
+        email_valid, email_message = self.validate_email(values['owner'])
+        if not email_valid:
+            messagebox.showerror("Invalid Email", 
+                               f"Owner email validation failed:\n\n{email_message}\n\n"
+                               f"Please use a valid @doordash.com email address.\n"
+                               f"Example: harsh.alkutkar@doordash.com")
+            return
+        
+        # Validate Unity URL format (warning only, don't stop generation)
+        self.validate_unity_url(values['url'])
+        
+        # Use the internal method to generate YAML
+        self.generate_experiment_yaml_internal(values)
+        
+        messagebox.showinfo("YAML Generated", "Experiment YAML configuration has been generated successfully!\n\nCheck the 'Output' tab to view the result.")
+
+
+
+    def clear_all_experiment_fields(self):
+        """Clear all experiment configuration fields"""
+        for var in self.exp_vars.values():
+            var.set("")
+        messagebox.showinfo("Fields Cleared", "All experiment configuration fields have been cleared.")
+
+    def open_unity_parser_modal(self):
+        """Open modal dialog for Unity content parsing"""
+        # Create modal window
+        modal = tk.Toplevel(self.root)
+        modal.title("Parse Unity Content")
+        modal.geometry("900x520")
+        modal.resizable(True, True)
+        
+        # Make it modal
+        modal.transient(self.root)
+        modal.grab_set()
+        
+        # Center the modal
+        modal.update_idletasks()
+        x = (modal.winfo_screenwidth() // 2) - (900 // 2)
+        y = (modal.winfo_screenheight() // 2) - (520 // 2)
+        modal.geometry(f"900x520+{x}+{y}")
+        
+        # Main container
+        main_frame = ttk.Frame(modal)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text="📄 Parse Unity Experiment Content", 
+                               font=('Arial', 16, 'bold'))
+        title_label.pack(pady=(0, 20))
+        
+        # Instructions
+        instructions_frame = ttk.LabelFrame(main_frame, text="📋 Instructions", padding=10)
+        instructions_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        # Unity link button
+        link_frame = ttk.Frame(instructions_frame)
+        link_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        def open_unity_experiments():
+            import webbrowser
+            webbrowser.open("https://unity.doordash.com/suites/data/decision-systems/dynamic-values-v2/experiments")
+        
+        ttk.Button(link_frame, text="🌐 Open Unity Experiments", 
+                  command=open_unity_experiments).pack(side=tk.LEFT, padx=(0, 10))
+        
+        ttk.Label(link_frame, text="→ Navigate to your experiment page", 
+                 font=('Arial', 10), foreground='gray').pack(side=tk.LEFT)
+        
+        # Instructions text
+        instructions_text = """1. Click "🌐 Open Unity Experiments" above or navigate to your experiment page
+2. Press Cmd+A (Mac) or Ctrl+A (Windows) to select all content
+3. Press Cmd+C (Mac) or Ctrl+C (Windows) to copy
+4. Paste the content in the text area below
+5. Click "Parse Content" to extract experiment fields"""
+        
+        ttk.Label(instructions_frame, text=instructions_text, font=('Arial', 10)).pack(anchor='w')
+        
+        # Example section (compact)
+        example_frame = ttk.LabelFrame(main_frame, text="📖 Example Content", padding=10)
+        example_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        example_text = """enable_mx_preview_v2
+Type: Experiment
+Return Type: String
+Owner: Harsh Alkutkar
+Start Date - End Date: 2025-02-11 - 2025-06-30"""
+        
+        ttk.Label(example_frame, text=example_text, font=('Consolas', 9), 
+                 foreground='gray').pack(anchor='w')
+        
+        # Content input area (fixed height)
+        content_frame = ttk.LabelFrame(main_frame, text="Unity Page Content", padding=10)
+        content_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        # Text area with scrollbar (3 lines height)
+        content_text = scrolledtext.ScrolledText(content_frame, wrap=tk.WORD, 
+                                               font=('Consolas', 10), height=3)
+        content_text.pack(fill=tk.X, pady=(0, 10))
+        
+        # Buttons (always visible at bottom)
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(20, 0), side=tk.BOTTOM)
+        
+        def parse_and_close():
+            content = content_text.get(1.0, tk.END).strip()
+            if content:
+                # Parse the content
+                extracted_data = self.extract_fields_from_text(content)
+                
+                # Update fields with extracted data
+                fields_updated = []
+                
+                if extracted_data.get('key'):
+                    self.exp_vars['key'].set(extracted_data['key'])
+                    fields_updated.append("Key")
+                    
+                if extracted_data.get('owner'):
+                    self.exp_vars['owner'].set(extracted_data['owner'])
+                    fields_updated.append("Owner")
+                    
+                if extracted_data.get('expiration'):
+                    self.exp_vars['expiration'].set(extracted_data['expiration'])
+                    fields_updated.append("Expiration")
+                    
+                if extracted_data.get('defaultValue'):
+                    self.exp_vars['defaultValue'].set(extracted_data['defaultValue'])
+                    fields_updated.append("Default Value")
+                    
+                if extracted_data.get('returnType'):
+                    self.exp_vars['returnType'].set(extracted_data['returnType'])
+                    fields_updated.append("Return Type")
+                    
+                if extracted_data.get('type'):
+                    self.exp_vars['type'].set(extracted_data['type'])
+                    fields_updated.append("Type")
+                
+                if extracted_data.get('description'):
+                    self.exp_vars['description'].set(extracted_data['description'])
+                    fields_updated.append("Description")
+                
+                # Close modal
+                modal.destroy()
+                
+                # Show results and auto-generate
+                if fields_updated:
+                    message = f"✅ Successfully parsed the following fields:\n\n• " + "\n• ".join(fields_updated)
+                    messagebox.showinfo("Parsing Complete", message)
+                    
+                    # Auto-generate YAML after a short delay
+                    self.root.after(500, self.auto_generate_yaml_after_parsing)
+                else:
+                    messagebox.showwarning("No Fields Found", 
+                                         "Could not extract any experiment fields from the provided content.")
+            else:
+                messagebox.showwarning("No Content", "Please paste Unity page content to parse")
+        
+        def clear_content():
+            content_text.delete(1.0, tk.END)
+        
+        ttk.Button(button_frame, text="🔍 Parse Content", 
+                  command=parse_and_close).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(button_frame, text="🧹 Clear", 
+                  command=clear_content).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(button_frame, text="❌ Cancel", 
+                  command=modal.destroy).pack(side=tk.RIGHT)
+        
+        # Focus on text area
+        content_text.focus_set()
+
+    def copy_yaml_output(self):
+        """Copy YAML output from the main Output tab to clipboard"""
+        yaml_content = self.yaml_output_display.get(1.0, tk.END).strip()
+        if not yaml_content:
+            messagebox.showwarning("No Content", "No YAML content to copy")
+            return
+            
+        try:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(yaml_content)
+            messagebox.showinfo("Copied", "YAML content copied to clipboard!")
+        except Exception as e:
+            messagebox.showerror("Copy Error", f"Failed to copy to clipboard: {str(e)}")
+
+    def clear_yaml_output(self):
+        """Clear the YAML output area"""
+        self.yaml_output_display.delete(1.0, tk.END)
+
+    def switch_to_yaml_generator(self):
+        """Switch to the YAML Generator tab"""
+        # Find the YAML Generator tab index
+        for i in range(self.config_notebook.index("end")):
+            if "YAML Generator" in self.config_notebook.tab(i, "text"):
+                self.config_notebook.select(i)
+                break
+
+    def switch_to_output_tab(self):
+        """Switch to the Output tab in the response area"""
+        # Find the Output tab index
+        for i in range(self.response_notebook.index("end")):
+            if "Output" in self.response_notebook.tab(i, "text"):
+                self.response_notebook.select(i)
+                break
+
+    def validate_unity_url(self, url):
+        """Validate Unity URL format and show warning banner if invalid"""
+        if not url:
+            return True  # Empty URL is OK
+        
+        # Expected Unity URL pattern
+        unity_pattern = r'https://unity\.doordash\.com/suites/data/decision-systems/dynamic-values-v2/experiments/[a-f0-9-]+'
+        
+        if not re.match(unity_pattern, url):
+            # Show warning banner
+            warning_message = (
+                f"⚠️ Unity URL Format Warning: The provided URL doesn't match the expected Unity experiment format.\n"
+                f"Expected: https://unity.doordash.com/suites/data/decision-systems/dynamic-values-v2/experiments/[experiment-id]\n"
+                f"Provided: {url}\n"
+                f"YAML generation will continue, but please verify the URL is correct."
+            )
+            self.show_warning_banner(warning_message)
+            return False
+        else:
+            # Clear any existing warning if URL is now valid
+            self.clear_warning_banner()
+            return True
+
+    def show_warning_banner(self, message):
+        """Show a warning banner at the top of the application"""
+        # Check if warning banner already exists
+        if hasattr(self, 'warning_banner') and self.warning_banner.winfo_exists():
+            self.warning_banner.destroy()
+        
+        # Create warning banner
+        self.warning_banner = ttk.Frame(self.root, style='Warning.TFrame')
+        self.warning_banner.pack(fill=tk.X, padx=5, pady=(5, 0), before=self.root.winfo_children()[0])
+        
+        # Configure warning style
+        style = ttk.Style()
+        style.configure('Warning.TFrame', background='#fff3cd', relief='solid', borderwidth=1)
+        style.configure('Warning.TLabel', background='#fff3cd', foreground='#856404')
+        
+        # Warning icon and message
+        warning_container = ttk.Frame(self.warning_banner, style='Warning.TFrame')
+        warning_container.pack(fill=tk.X, padx=10, pady=8)
+        
+        ttk.Label(warning_container, text="⚠️", font=('Arial', 12), 
+                 style='Warning.TLabel').pack(side=tk.LEFT, padx=(0, 10))
+        
+        ttk.Label(warning_container, text=message, font=('Arial', 9), 
+                 style='Warning.TLabel', wraplength=1200).pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # Close button
+        close_btn = ttk.Button(warning_container, text="✕", width=3,
+                              command=self.clear_warning_banner)
+        close_btn.pack(side=tk.RIGHT, padx=(10, 0))
+
+    def clear_warning_banner(self):
+        """Clear the warning banner"""
+        if hasattr(self, 'warning_banner') and self.warning_banner.winfo_exists():
+            self.warning_banner.destroy()
+
+    def auto_generate_yaml_after_parsing(self):
+        """Automatically generate YAML after successful parsing, with validation"""
+        try:
+            # Get all values from form
+            values = {}
+            for key, var in self.exp_vars.items():
+                values[key] = var.get().strip()
+            
+            # Check if we have enough fields to attempt auto-generation
+            critical_fields = ['key', 'owner', 'type']
+            missing_critical = [field for field in critical_fields if not values.get(field)]
+            
+            if missing_critical:
+                # Don't auto-generate if critical fields are missing
+                return
+            
+            # Try to fill in default values for missing fields
+            if not values.get('description'):
+                values['description'] = f"Experiment configuration for {values['key']}"
+            
+            if not values.get('defaultValue'):
+                # Smart default based on return type if available
+                return_type = values.get('returnType', '').lower()
+                if 'string' in return_type:
+                    values['defaultValue'] = 'control'
+                else:
+                    values['defaultValue'] = 'false'  # Default for boolean or unknown types
+                self.exp_vars['defaultValue'].set(values['defaultValue'])
+            
+            if not values.get('expiration'):
+                # Set a default expiration date (6 months from now)
+                from datetime import datetime, timedelta
+                future_date = datetime.now() + timedelta(days=180)
+                values['expiration'] = future_date.strftime('%Y-%m-%d')
+                self.exp_vars['expiration'].set(values['expiration'])
+            
+            if not values.get('url'):
+                values['url'] = 'https://unity.doordash.com/suites/data/decision-systems/dynamic-values-v2/experiments/[experiment-id]'
+                self.exp_vars['url'].set(values['url'])
+            
+            if not values.get('group'):
+                values['group'] = 'DiscoveryExperience'
+                self.exp_vars['group'].set(values['group'])
+            
+            # Validate email format
+            email_valid, email_message = self.validate_email(values['owner'])
+            if not email_valid:
+                # Don't auto-generate if email is invalid
+                return
+            
+            # Validate Unity URL format (warning only, continue generation)
+            self.validate_unity_url(values['url'])
+            
+            # All validations passed, generate YAML
+            self.generate_experiment_yaml_internal(values)
+            
+        except Exception as e:
+            # If auto-generation fails, silently continue - user can manually generate
+            pass
+
+    def generate_experiment_yaml_internal(self, values):
+        """Internal method to generate YAML from provided values"""
+        # Generate YAML-like output
+        # Extract the meaningful part for the top-level entry 
+        # Example: "cx_homepage_discovery_realtime_android_v3" -> "discoveryRealtimeV3"
+        full_key = values['key']
+        
+        # Try to extract the meaningful middle part (discovery_realtime_v3) and convert to camelCase
+        if 'discovery_realtime' in full_key:
+            # For discovery realtime experiments, extract from "discovery" onwards
+            start_idx = full_key.find('discovery')
+            if start_idx != -1:
+                meaningful_part = full_key[start_idx:]
+                # Remove trailing platform/version info like "_android_v3" -> keep just "discovery_realtime_v3"
+                if '_android_' in meaningful_part:
+                    # Keep version info but remove platform
+                    parts = meaningful_part.split('_android_')
+                    if len(parts) > 1:
+                        meaningful_part = parts[0] + '_' + parts[1]  # discovery_realtime_v3
+                elif '_ios_' in meaningful_part:
+                    parts = meaningful_part.split('_ios_')
+                    if len(parts) > 1:
+                        meaningful_part = parts[0] + '_' + parts[1]
+                
+                # Convert to camelCase
+                parts = meaningful_part.split('_')
+                camel_case_key = parts[0] + ''.join(word.capitalize() for word in parts[1:])
+            else:
+                camel_case_key = full_key
+        else:
+            # Fallback: convert entire key to camelCase
+            if '_' in full_key:
+                parts = full_key.split('_')
+                camel_case_key = parts[0] + ''.join(word.capitalize() for word in parts[1:])
+            else:
+                camel_case_key = full_key
+        
+        yaml_output = f"""{camel_case_key}:
+  key: {values['key']}
+  description: "{values['description']}"
+  defaultValue: {values['defaultValue']}
+  expiration: '{values['expiration']}'
+  owner: {values['owner']}
+  url: {values['url']}
+  type: {values['type']}
+  group: {values['group']}"""
+        
+        # Display in main Output tab
+        self.yaml_output_display.delete(1.0, tk.END)
+        self.yaml_output_display.insert(1.0, yaml_output)
+        
+        # Switch to the Output tab to show the result
+        self.switch_to_output_tab()
 
     def make_request_threaded(self):
         """Make API request in a separate thread"""
