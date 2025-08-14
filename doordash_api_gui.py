@@ -101,7 +101,7 @@ class DoorDashAPIGUI:
         try:
             # Start with the sash lower to ensure controls are visible
             self.root.update_idletasks()
-            paned_window.sashpos(0, int(self.root.winfo_height()*0.80))
+            paned_window.sashpos(0, int(self.root.winfo_height()*0.90))
         except Exception:
             pass
         
@@ -118,7 +118,7 @@ class DoorDashAPIGUI:
         hsplit.add(right_actions, weight=1)
         try:
             # ensure right panel reasonable width
-            hsplit.sashpos(0, int(self.root.winfo_width()*0.68))
+            hsplit.sashpos(0, int(self.root.winfo_width()*0.62))
         except Exception:
             pass
         
