@@ -3240,8 +3240,16 @@ def main():
     # Create and run the application
     app = DoorDashAPIGUI(root)
     
-    # Center the window
-    root.eval('tk::PlaceWindow . center')
+    # Center and bring to front to ensure it is visible
+    try:
+        root.update_idletasks()
+        root.eval('tk::PlaceWindow . center')
+        root.deiconify()
+        root.lift()
+        root.attributes('-topmost', True)
+        root.after(600, lambda: root.attributes('-topmost', False))
+    except Exception:
+        pass
     
     # Start the GUI event loop
     root.mainloop()
