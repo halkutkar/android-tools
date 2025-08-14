@@ -305,7 +305,7 @@ class DoorDashAPIGUI:
         title_frame = ttk.Frame(parent)
         title_frame.pack(fill=tk.X, pady=(0, 5))
         ttk.Label(title_frame, text="📋 Configuration Editor", 
-                 font=('Arial', 14, 'bold')).pack(anchor=tk.W)
+                 font=(self.choose_font_family(), 11, 'bold')).pack(anchor=tk.W)
         
         config_frame = ttk.Frame(parent, padding=10)
         config_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 5))
@@ -455,7 +455,7 @@ class DoorDashAPIGUI:
         content_frame = ttk.Frame(scrollable_frame)
         content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
         
-        ttk.Label(content_frame, text="🔌 API Connection", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
+        ttk.Label(content_frame, text="🔌 API Connection", font=(self.choose_font_family(), 11, 'bold')).pack(pady=(0, 15), anchor='w')
         
         # Base URL field
         self.create_api_host_field_with_presets(content_frame)
@@ -465,7 +465,7 @@ class DoorDashAPIGUI:
         
         ttk.Separator(content_frame, orient='horizontal').pack(fill=tk.X, pady=20)
         
-        ttk.Label(content_frame, text="🔑 Authentication", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
+        ttk.Label(content_frame, text="🔑 Authentication", font=(self.choose_font_family(), 11, 'bold')).pack(pady=(0, 15), anchor='w')
         
         self.create_config_field(content_frame, "Authorization Token", "AUTHORIZATION_TOKEN", 
                                "JWT Bearer token", is_password=False)
@@ -477,7 +477,7 @@ class DoorDashAPIGUI:
         
         ttk.Separator(content_frame, orient='horizontal').pack(fill=tk.X, pady=20)
         
-        ttk.Label(content_frame, text="📱 Client Information", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
+        ttk.Label(content_frame, text="📱 Client Information", font=(self.choose_font_family(), 11, 'bold')).pack(pady=(0, 15), anchor='w')
         
         self.create_config_field(content_frame, "User Agent", "USER_AGENT", 
                                "Client user agent string")
@@ -635,7 +635,7 @@ class DoorDashAPIGUI:
         canvas.configure(yscrollcommand=scrollbar.set)
         
         # Advanced configuration
-        ttk.Label(scrollable_frame, text="🎯 Events & Data", font=('Arial', 12, 'bold')).pack(pady=(0, 10))
+        ttk.Label(scrollable_frame, text="🎯 Events & Data", font=(self.choose_font_family(), 11, 'bold')).pack(pady=(0, 10))
         
         # Special handling for realtime events
         events_frame = ttk.Frame(scrollable_frame)
@@ -657,7 +657,7 @@ class DoorDashAPIGUI:
         
         ttk.Separator(scrollable_frame, orient='horizontal').pack(fill=tk.X, pady=10)
         
-        ttk.Label(scrollable_frame, text="🔧 API Configuration", font=('Arial', 12, 'bold')).pack(pady=(0, 10))
+        ttk.Label(scrollable_frame, text="🔧 API Configuration", font=(self.choose_font_family(), 11, 'bold')).pack(pady=(0, 10))
         
         self.create_config_field(scrollable_frame, "BFF Error Format", "BFF_ERROR_FORMAT", 
                                "Backend error format version")
@@ -668,7 +668,7 @@ class DoorDashAPIGUI:
         
         ttk.Separator(scrollable_frame, orient='horizontal').pack(fill=tk.X, pady=10)
         
-        ttk.Label(scrollable_frame, text="📊 Display Settings", font=('Arial', 12, 'bold')).pack(pady=(0, 10))
+        ttk.Label(scrollable_frame, text="📊 Display Settings", font=(self.choose_font_family(), 11, 'bold')).pack(pady=(0, 10))
         
         self.create_config_field(scrollable_frame, "Default Verbose", "DEFAULT_VERBOSE", 
                                "Default verbose mode (true/false)")
@@ -770,7 +770,7 @@ This provides a better experience for creating experiment configurations with:
         content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
         
         # Experiment configuration fields
-        ttk.Label(content_frame, text="🔧 Basic Configuration", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
+        ttk.Label(content_frame, text="🔧 Basic Configuration", font=(self.choose_font_family(), 11, 'bold')).pack(pady=(0, 15), anchor='w')
         
         self.exp_vars['key'] = self.create_experiment_field(content_frame, "Experiment Key", "key", 
                                                            "e.g., cx_homepage_discovery_realtime_android_v3", width=60)
@@ -779,7 +779,7 @@ This provides a better experience for creating experiment configurations with:
         
         ttk.Separator(content_frame, orient='horizontal').pack(fill=tk.X, pady=20)
         
-        ttk.Label(content_frame, text="⚙️ Experiment Settings", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
+        ttk.Label(content_frame, text="⚙️ Experiment Settings", font=(self.choose_font_family(), 11, 'bold')).pack(pady=(0, 15), anchor='w')
         
         self.exp_vars['returnType'] = self.create_experiment_field(content_frame, "Return Type", "returnType", 
                                                                    "Boolean or String", width=20)
@@ -808,7 +808,7 @@ This provides a better experience for creating experiment configurations with:
         
         ttk.Separator(content_frame, orient='horizontal').pack(fill=tk.X, pady=20)
         
-        ttk.Label(content_frame, text="👤 Ownership & Metadata", font=('Arial', 14, 'bold')).pack(pady=(0, 15), anchor='w')
+        ttk.Label(content_frame, text="👤 Ownership & Metadata", font=(self.choose_font_family(), 11, 'bold')).pack(pady=(0, 15), anchor='w')
         
         self.exp_vars['owner'] = self.create_experiment_field(content_frame, "Owner Email", "owner", 
                                                              "Owner's email address", width=50)
@@ -956,7 +956,7 @@ This provides a better experience for creating experiment configurations with:
         container = ttk.Frame(modal, padding=15)
         container.pack(fill=tk.BOTH, expand=True)
         
-        ttk.Label(container, text="🔑 Fetch Authorization Token from Android Debug Logs", font=('Arial', 14, 'bold')).pack(anchor='w', pady=(0, 10))
+        ttk.Label(container, text="🔑 Fetch Authorization Token from Android Debug Logs", font=(self.choose_font_family(), 11, 'bold')).pack(anchor='w', pady=(0, 10))
         
         steps = (
             "1) Ensure a device/emulator is connected: adb devices\n"
