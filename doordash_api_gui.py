@@ -303,16 +303,7 @@ class DoorDashAPIGUI:
         self.create_experiment_config_tab()
         self.create_yaml_generator_tab()
         
-        # Config buttons frame
-        config_buttons_frame = ttk.Frame(config_frame)
-        config_buttons_frame.pack(fill=tk.X, pady=(10, 0))
-        
-        ttk.Button(config_buttons_frame, text="💾 Save Configuration", 
-                  command=self.save_configuration).pack(side=tk.LEFT)
-        ttk.Button(config_buttons_frame, text="🔄 Reset to File", 
-                  command=self.reset_configuration).pack(side=tk.LEFT, padx=(10, 0))
-        ttk.Button(config_buttons_frame, text="📁 Save to File", 
-                  command=self.save_to_file).pack(side=tk.LEFT, padx=(10, 0))
+        # Config buttons were moved to right sidebar actions to be always visible
                 
     def create_controls_section(self, parent):
         """Create the control buttons section"""
@@ -3165,6 +3156,13 @@ Paste your token below (JWT prefix will be automatically removed):""",
         
         self.verbose_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(actions, text="Show detailed response", variable=self.verbose_var).pack(anchor='w', pady=(8,0))
+        
+        # Config actions
+        cfg_actions = ttk.LabelFrame(container, text="Configuration", padding=10)
+        cfg_actions.pack(fill=tk.X, pady=(12,0))
+        ttk.Button(cfg_actions, text="💾 Save Configuration", command=self.save_configuration).pack(fill=tk.X)
+        ttk.Button(cfg_actions, text="🔄 Reset to File", command=self.reset_configuration).pack(fill=tk.X, pady=(8,0))
+        ttk.Button(cfg_actions, text="📁 Save to File", command=self.save_to_file).pack(fill=tk.X, pady=(0,0))
         
         # Divider
         ttk.Separator(container, orient='horizontal').pack(fill=tk.X, pady=12)
