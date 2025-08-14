@@ -962,11 +962,10 @@ This provides a better experience for creating experiment configurations with:
             return
         
         jwt = match.group(1)
-        # Pre-fill the Authorization Token field (without 'JWT ' prefix)
+        # Set both GUI field and in-memory config so requests use it immediately
+        self.config['AUTHORIZATION_TOKEN'] = jwt
         if 'AUTHORIZATION_TOKEN' in self.config_vars:
             self.config_vars['AUTHORIZATION_TOKEN'].set(jwt)
-        else:
-            self.config['AUTHORIZATION_TOKEN'] = jwt
         
         self.append_adb_status("✅ Token found and pre-filled in Authorization Token field.\n")
         
@@ -1438,6 +1437,14 @@ Start Date - End Date: 2025-02-11 - 2025-06-30"""
     def make_request(self):
         """Make the API request and display response"""
         try:
+            # Sync latest GUI values into in-memory config so requests use current entries
+            if hasattr(self, 'config_vars') and isinstance(self.config_vars, dict):
+                for key, var in self.config_vars.items():
+                    try:
+                        self.config[key] = var.get()
+                    except Exception:
+                        pass
+            
             # Validate auth token
             self.validate_auth_token()
             
