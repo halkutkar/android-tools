@@ -6,6 +6,7 @@ A modern GUI for testing DoorDash realtime recommendation API
 
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
+from tkinter import font as tkfont
 import requests
 import json
 import threading
@@ -20,8 +21,19 @@ class DoorDashAPIGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("DoorDash API Tester & Configuration Manager")
-        self.root.geometry("1500x1000")
+        # Start fullscreen to ensure controls are visible without dragging splitters
+        try:
+            self.root.attributes('-zoomed', True)  # macOS/Linux Tk (zoom to full screen)
+        except Exception:
+            try:
+                self.root.state('zoomed')  # Windows
+            except Exception:
+                self.root.geometry("1800x1200")
         self.root.configure(bg='#f0f0f0')
+        
+        # Track DPI/sizing to scale widgets
+        self.ui_scale = self.compute_ui_scale()
+        self.apply_global_styles()
         
         # Configuration variables
         self.config = {}
@@ -52,6 +64,23 @@ class DoorDashAPIGUI:
         if not self.config.get('AUTHORIZATION_TOKEN') or self.config.get('AUTHORIZATION_TOKEN') == 'null':
             self.config['AUTHORIZATION_TOKEN'] = None
             
+    def compute_ui_scale(self) -> float:
+        try:
+            screen_w = self.root.winfo_screenwidth()
+            # Base width ~ 1440; scale proportionally
+            return max(1.0, min(1.5, screen_w / 1440.0))
+        except Exception:
+            return 1.0
+    
+    def apply_global_styles(self):
+        try:
+            style = ttk.Style()
+            base_pad = int(8 * self.ui_scale)
+            style.configure('TButton', padding=(base_pad, max(6, int(6*self.ui_scale))))
+            style.configure('Accent.TButton', padding=(base_pad+2, max(6, int(7*self.ui_scale))))
+        except Exception:
+            pass
+    
     def create_widgets(self):
         """Create and layout GUI widgets"""
         # Main container
@@ -69,6 +98,12 @@ class DoorDashAPIGUI:
         # Create a PanedWindow to split configuration and response areas
         paned_window = ttk.PanedWindow(main_frame, orient=tk.VERTICAL)
         paned_window.pack(fill=tk.BOTH, expand=True)
+        try:
+            # Start with the sash lower to ensure controls are visible
+            self.root.update_idletasks()
+            paned_window.sashpos(0, int(self.root.winfo_height()*0.55))
+        except Exception:
+            pass
         
         # Top pane for configuration and controls
         top_pane = ttk.Frame(paned_window)
