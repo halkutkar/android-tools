@@ -13,6 +13,8 @@ import os
 import webbrowser
 from datetime import datetime
 import re
+import subprocess
+import shutil
 
 class DoorDashAPIGUI:
     def __init__(self, root):
@@ -403,6 +405,11 @@ class DoorDashAPIGUI:
         
         self.create_config_field(content_frame, "Authorization Token", "AUTHORIZATION_TOKEN", 
                                "JWT Bearer token", is_password=False)
+        
+        # Fetch from Android Logs button
+        auth_buttons = ttk.Frame(content_frame)
+        auth_buttons.pack(fill=tk.X, pady=(8, 0))
+        ttk.Button(auth_buttons, text="🔍 Fetch from Android Logs", command=self.open_fetch_auth_from_android_modal).pack(side=tk.LEFT)
         
         ttk.Separator(content_frame, orient='horizontal').pack(fill=tk.X, pady=20)
         
@@ -873,6 +880,96 @@ This provides a better experience for creating experiment configurations with:
         """Clear the content text area"""
         self.content_text.delete(1.0, tk.END)
 
+    def open_fetch_auth_from_android_modal(self):
+        """Open modal to guide and fetch JWT from Android adb logs"""
+        modal = tk.Toplevel(self.root)
+        modal.title("Fetch Authorization from Android Logs")
+        modal.geometry("780x420")
+        modal.resizable(True, True)
+        modal.transient(self.root)
+        modal.grab_set()
+        
+        container = ttk.Frame(modal, padding=15)
+        container.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(container, text="🔑 Fetch Authorization Token from Android Debug Logs", font=('Arial', 14, 'bold')).pack(anchor='w', pady=(0, 10))
+        
+        steps = (
+            "1) Ensure a device/emulator is connected: adb devices\n"
+            "2) Run the DEBUG build of the Android app and login\n"
+            "3) We will scan logcat for lines containing 'Authorization: JWT ...'\n"
+            "4) The token will be extracted and pre-filled here"
+        )
+        ttk.Label(container, text=steps, font=('Consolas', 10), foreground='gray').pack(anchor='w')
+        
+        # Status area
+        status_frame = ttk.LabelFrame(container, text="Status", padding=8)
+        status_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 10))
+        self.adb_status = scrolledtext.ScrolledText(status_frame, height=8, wrap=tk.WORD, font=('Consolas', 10))
+        self.adb_status.pack(fill=tk.BOTH, expand=True)
+        
+        # Buttons
+        btns = ttk.Frame(container)
+        btns.pack(fill=tk.X)
+        ttk.Button(btns, text="🌐 ADB Setup Guide", command=self.open_adb_setup_url).pack(side=tk.LEFT)
+        ttk.Button(btns, text="🔎 Scan Logs", command=self.scan_adb_for_jwt_threaded).pack(side=tk.LEFT, padx=(10, 0))
+        ttk.Button(btns, text="Close", command=modal.destroy).pack(side=tk.RIGHT)
+        
+        # Initial check
+        self.append_adb_status("Ready. Click 'Scan Logs' after logging in on the Android debug app.\n")
+        
+    def open_adb_setup_url(self):
+        webbrowser.open("https://developer.android.com/tools/adb")
+    
+    def append_adb_status(self, text: str):
+        try:
+            self.adb_status.insert(tk.END, text)
+            self.adb_status.see(tk.END)
+        except Exception:
+            pass
+    
+    def scan_adb_for_jwt_threaded(self):
+        thread = threading.Thread(target=self.scan_adb_for_jwt)
+        thread.daemon = True
+        thread.start()
+    
+    def scan_adb_for_jwt(self):
+        # Verify adb exists
+        adb_path = shutil.which('adb')
+        if not adb_path:
+            self.append_adb_status("❌ adb not found in PATH. Install Android Platform-Tools and ensure 'adb' is available.\n")
+            return
+        
+        self.append_adb_status(f"✅ Found adb at {adb_path}\n")
+        self.append_adb_status("🔎 Scanning logs for Authorization header...\n")
+        
+        # Run logcat -d to dump recent logs quickly
+        try:
+            result = subprocess.run([adb_path, 'logcat', '-d'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=20)
+        except Exception as e:
+            self.append_adb_status(f"❌ Failed to run adb logcat: {e}\n")
+            return
+        
+        if result.returncode != 0:
+            self.append_adb_status(f"❌ adb logcat error: {result.stderr}\n")
+            return
+        
+        logs = result.stdout
+        # Look for Authorization: JWT <token>
+        match = re.search(r"Authorization:\s*JWT\s+([A-Za-z0-9-_\.]+)", logs)
+        if not match:
+            self.append_adb_status("⚠️ Could not find Authorization: JWT ... in logs. Make sure you're on DEBUG build and logged in.\n")
+            return
+        
+        jwt = match.group(1)
+        # Pre-fill the Authorization Token field (without 'JWT ' prefix)
+        if 'AUTHORIZATION_TOKEN' in self.config_vars:
+            self.config_vars['AUTHORIZATION_TOKEN'].set(jwt)
+        else:
+            self.config['AUTHORIZATION_TOKEN'] = jwt
+        
+        self.append_adb_status("✅ Token found and pre-filled in Authorization Token field.\n")
+        
     def validate_email(self, email):
         """Validate email format and ensure it's a @doordash.com email"""
         if not email:
