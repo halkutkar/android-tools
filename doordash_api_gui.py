@@ -101,7 +101,7 @@ class DoorDashAPIGUI:
         try:
             # Start with the sash lower to ensure controls are visible
             self.root.update_idletasks()
-            paned_window.sashpos(0, int(self.root.winfo_height()*0.55))
+            paned_window.sashpos(0, int(self.root.winfo_height()*0.80))
         except Exception:
             pass
         
