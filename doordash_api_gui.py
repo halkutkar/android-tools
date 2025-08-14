@@ -89,8 +89,8 @@ class DoorDashAPIGUI:
             # Choose app font similar to Google's Lato with robust fallbacks
             family = self.choose_font_family()
             base_size = max(10, int(10 * self.ui_scale))
-            self.app_font = tkfont.Font(family=family, size=base_size)
-            self.app_font_bold = tkfont.Font(family=family, size=max(12, int(12*self.ui_scale)), weight='bold')
+            self.app_font = tkfont.Font(family=family, size=max(9, int(9 * self.ui_scale)))
+            self.app_font_bold = tkfont.Font(family=family, size=max(11, int(11*self.ui_scale)), weight='bold')
             # Set defaults for ttk widgets
             style.configure('.', font=self.app_font)
             style.configure('TLabel', font=self.app_font)
@@ -117,7 +117,7 @@ class DoorDashAPIGUI:
         
         # Title
         title_label = ttk.Label(main_frame, text="🚀 DoorDash API Tester & Configuration Manager", 
-                               font=('Arial', 16, 'bold'))
+                               font=(self.choose_font_family(), 13, 'bold'))
         title_label.pack(pady=(0, 10))
         
         # Create a PanedWindow to split configuration and response areas
@@ -688,7 +688,7 @@ class DoorDashAPIGUI:
         placeholder_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
         title_label = ttk.Label(placeholder_frame, text="🧪 Experiment Configuration", 
-                               font=('Arial', 16, 'bold'))
+                               font=(self.choose_font_family(), 12, 'bold'))
         title_label.pack(pady=(0, 20))
         
         info_text = """The experiment YAML generator has been moved to its own dedicated tab:
@@ -716,7 +716,7 @@ This provides a better experience for creating experiment configurations with:
         
         # Title
         title_label = ttk.Label(main_container, text="📄 Experiment YAML Configuration Generator", 
-                               font=('Arial', 16, 'bold'))
+                               font=(self.choose_font_family(), 12, 'bold'))
         title_label.pack(pady=(0, 20))
         
         # Button to open Unity content parser modal
@@ -1150,7 +1150,7 @@ This provides a better experience for creating experiment configurations with:
         
         # Title
         title_label = ttk.Label(main_frame, text="📄 Parse Unity Experiment Content", 
-                               font=('Arial', 16, 'bold'))
+                               font=(self.choose_font_family(), 12, 'bold'))
         title_label.pack(pady=(0, 20))
         
         # Instructions
@@ -2531,7 +2531,7 @@ Paste your token below (JWT prefix will be automatically removed):""",
         
         # Title
         title_label = ttk.Label(main_frame, text="🔧 API Configuration Presets", 
-                               font=('Arial', 16, 'bold'))
+                               font=(self.choose_font_family(), 12, 'bold'))
         title_label.pack(pady=(0, 25))
         
         # Description
