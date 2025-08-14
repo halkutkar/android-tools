@@ -105,15 +105,28 @@ class DoorDashAPIGUI:
         except Exception:
             pass
         
-        # Top pane for configuration and controls
+        # Top pane split horizontally: left (config), right (actions/auth)
         top_pane = ttk.Frame(paned_window)
-        paned_window.add(top_pane, weight=3)  # Give configuration area more weight
+        paned_window.add(top_pane, weight=3)
         
-        # Configuration section
-        self.create_config_section(top_pane)
+        hsplit = ttk.PanedWindow(top_pane, orient=tk.HORIZONTAL)
+        hsplit.pack(fill=tk.BOTH, expand=True)
         
-        # Request controls
-        self.create_controls_section(top_pane)
+        left_config = ttk.Frame(hsplit)
+        right_actions = ttk.Frame(hsplit, width=420)
+        hsplit.add(left_config, weight=3)
+        hsplit.add(right_actions, weight=1)
+        try:
+            # ensure right panel reasonable width
+            hsplit.sashpos(0, int(self.root.winfo_width()*0.68))
+        except Exception:
+            pass
+        
+        # Left: Configuration notebook
+        self.create_config_section(left_config)
+        
+        # Right: Actions + Auth sidebar (buttons always visible)
+        self.create_actions_sidebar(right_actions)
         
         # Bottom pane for response area
         response_frame = ttk.Frame(paned_window)
@@ -3133,6 +3146,65 @@ Paste your token below (JWT prefix will be automatically removed):""",
             print(f"Error extracting carousel info: {e}")
             
         return None
+
+    def create_actions_sidebar(self, parent):
+        """Create a right-hand sidebar with always-visible actions and auth/info"""
+        container = ttk.Frame(parent, padding=10)
+        container.pack(fill=tk.BOTH, expand=True)
+        
+        # Actions
+        actions = ttk.LabelFrame(container, text="Actions", padding=10)
+        actions.pack(fill=tk.X)
+        
+        self.make_request_btn = ttk.Button(actions, text="🚀 Make Request", 
+                                          command=self.make_request_threaded, style='Accent.TButton')
+        self.make_request_btn.pack(fill=tk.X)
+        
+        ttk.Button(actions, text="🧹 Clear Response", command=self.clear_response).pack(fill=tk.X, pady=(8,0))
+        ttk.Button(actions, text="📋 Export as cURL", command=self.export_as_curl).pack(fill=tk.X, pady=(8,0))
+        
+        self.verbose_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(actions, text="Show detailed response", variable=self.verbose_var).pack(anchor='w', pady=(8,0))
+        
+        # Divider
+        ttk.Separator(container, orient='horizontal').pack(fill=tk.X, pady=12)
+        
+        # Authentication quick section
+        auth = ttk.LabelFrame(container, text="Authentication", padding=10)
+        auth.pack(fill=tk.X)
+        
+        token_var = self.config_vars.get('AUTHORIZATION_TOKEN') if hasattr(self, 'config_vars') else None
+        if token_var is None:
+            token_var = tk.StringVar(value=self.config.get('AUTHORIZATION_TOKEN', '') or '')
+            if hasattr(self, 'config_vars'):
+                self.config_vars['AUTHORIZATION_TOKEN'] = token_var
+        
+        ttk.Label(auth, text="Authorization Token:").pack(anchor='w')
+        ttk.Entry(auth, textvariable=token_var, show="", width=48).pack(fill=tk.X)
+        ttk.Button(auth, text="🔍 Fetch from Android Logs", command=self.open_fetch_auth_from_android_modal).pack(fill=tk.X, pady=(8,0))
+        
+        # Client Info quick section
+        client = ttk.LabelFrame(container, text="Client Info", padding=10)
+        client.pack(fill=tk.BOTH, expand=True, pady=(12,0))
+        
+        ua_var = self.config_vars.get('USER_AGENT') if hasattr(self, 'config_vars') else None
+        if ua_var is None:
+            ua_var = tk.StringVar(value=self.config.get('USER_AGENT',''))
+            if hasattr(self, 'config_vars'):
+                self.config_vars['USER_AGENT'] = ua_var
+        
+        cv_var = self.config_vars.get('CLIENT_VERSION') if hasattr(self, 'config_vars') else None
+        if cv_var is None:
+            cv_var = tk.StringVar(value=self.config.get('CLIENT_VERSION',''))
+            if hasattr(self, 'config_vars'):
+                self.config_vars['CLIENT_VERSION'] = cv_var
+        
+        ttk.Label(client, text="User Agent:").pack(anchor='w')
+        ttk.Entry(client, textvariable=ua_var).pack(fill=tk.X)
+        ttk.Label(client, text="Client Version:").pack(anchor='w', pady=(8,0))
+        ttk.Entry(client, textvariable=cv_var).pack(fill=tk.X)
+        
+        ttk.Label(client, text="Tip: Full settings available on the left tabs.", foreground='gray').pack(anchor='w', pady=(10,0))
 
 def main():
     """Main function to run the GUI application"""
