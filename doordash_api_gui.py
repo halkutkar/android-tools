@@ -95,7 +95,7 @@ class DoorDashAPIGUI:
             style.configure('.', font=self.app_font)
             style.configure('TLabel', font=self.app_font)
             style.configure('TButton', font=self.app_font, padding=(base_pad, max(6, int(6*self.ui_scale))))
-            style.configure('Accent.TButton', font=self.app_font_bold, padding=(base_pad+2, max(6, int(7*self.ui_scale))))
+            style.configure('Accent.TButton', font=self.app_font, padding=(base_pad+2, max(6, int(7*self.ui_scale))))
             style.configure('TEntry', padding=(max(4, int(4*self.ui_scale)), max(3, int(3*self.ui_scale))))
             style.configure('TNotebook.Tab', font=self.app_font)
             # Also set Tk option database for classic widgets
@@ -3172,12 +3172,12 @@ Paste your token below (JWT prefix will be automatically removed):""",
         actions = ttk.LabelFrame(container, text="Actions", padding=10)
         actions.pack(fill=tk.X)
         
-        self.make_request_btn = ttk.Button(actions, text="🚀 Make Request", 
+        self.make_request_btn = ttk.Button(actions, text="Make Request", 
                                           command=self.make_request_threaded, style='Accent.TButton')
         self.make_request_btn.pack(fill=tk.X)
         
-        ttk.Button(actions, text="🧹 Clear Response", command=self.clear_response).pack(fill=tk.X, pady=(8,0))
-        ttk.Button(actions, text="📋 Export as cURL", command=self.export_as_curl).pack(fill=tk.X, pady=(8,0))
+        ttk.Button(actions, text="Clear Response", command=self.clear_response).pack(fill=tk.X, pady=(8,0))
+        ttk.Button(actions, text="Export as cURL", command=self.export_as_curl).pack(fill=tk.X, pady=(8,0))
         
         self.verbose_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(actions, text="Show detailed response", variable=self.verbose_var).pack(anchor='w', pady=(8,0))
