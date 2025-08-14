@@ -72,12 +72,37 @@ class DoorDashAPIGUI:
         except Exception:
             return 1.0
     
+    def choose_font_family(self) -> str:
+        try:
+            available = {f.lower() for f in tkfont.families()}
+            for fam in ["Lato", "Helvetica Neue", "Segoe UI", "Helvetica", "Arial"]:
+                if fam.lower() in available:
+                    return fam
+        except Exception:
+            pass
+        return "Arial"
+
     def apply_global_styles(self):
         try:
             style = ttk.Style()
             base_pad = int(8 * self.ui_scale)
-            style.configure('TButton', padding=(base_pad, max(6, int(6*self.ui_scale))))
-            style.configure('Accent.TButton', padding=(base_pad+2, max(6, int(7*self.ui_scale))))
+            # Choose app font similar to Google's Lato with robust fallbacks
+            family = self.choose_font_family()
+            base_size = max(10, int(10 * self.ui_scale))
+            self.app_font = tkfont.Font(family=family, size=base_size)
+            self.app_font_bold = tkfont.Font(family=family, size=max(12, int(12*self.ui_scale)), weight='bold')
+            # Set defaults for ttk widgets
+            style.configure('.', font=self.app_font)
+            style.configure('TLabel', font=self.app_font)
+            style.configure('TButton', font=self.app_font, padding=(base_pad, max(6, int(6*self.ui_scale))))
+            style.configure('Accent.TButton', font=self.app_font_bold, padding=(base_pad+2, max(6, int(7*self.ui_scale))))
+            style.configure('TEntry', padding=(max(4, int(4*self.ui_scale)), max(3, int(3*self.ui_scale))))
+            style.configure('TNotebook.Tab', font=self.app_font)
+            # Also set Tk option database for classic widgets
+            try:
+                self.root.option_add("*Font", self.app_font)
+            except Exception:
+                pass
         except Exception:
             pass
     
