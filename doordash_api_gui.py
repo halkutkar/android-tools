@@ -998,11 +998,30 @@ This provides a better experience for creating experiment configurations with:
         thread.start()
     
     def scan_adb_for_jwt(self):
-        # Verify adb exists
+        # Verify adb exists - check common locations on macOS
         adb_path = shutil.which('adb')
         if not adb_path:
-            self.append_adb_status("❌ adb not found in PATH. Install Android Platform-Tools and ensure 'adb' is available.\n")
-            return
+            # Check common homebrew locations
+            common_paths = [
+                '/opt/homebrew/bin/adb',  # Apple Silicon Homebrew
+                '/usr/local/bin/adb',     # Intel Homebrew
+                '/usr/local/android-sdk/platform-tools/adb',
+                '~/Library/Android/sdk/platform-tools/adb',
+                '~/Android/Sdk/platform-tools/adb'
+            ]
+            
+            for path in common_paths:
+                expanded_path = os.path.expanduser(path)
+                if os.path.isfile(expanded_path) and os.access(expanded_path, os.X_OK):
+                    adb_path = expanded_path
+                    break
+            
+            if not adb_path:
+                self.append_adb_status("❌ adb not found in PATH or common locations.\n")
+                self.append_adb_status("💡 Install Android Platform-Tools:\n")
+                self.append_adb_status("   • Via Homebrew: brew install android-platform-tools\n")
+                self.append_adb_status("   • Or download from: https://developer.android.com/studio/releases/platform-tools\n")
+                return
         
         self.append_adb_status(f"✅ Found adb at {adb_path}\n")
         self.append_adb_status("🔎 Scanning logs for Authorization header...\n")
