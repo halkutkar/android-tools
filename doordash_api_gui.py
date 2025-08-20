@@ -16,6 +16,7 @@ from datetime import datetime
 import re
 import subprocess
 import shutil
+import time
 
 class DoorDashAPIGUI:
     def __init__(self, root):
@@ -326,6 +327,7 @@ class DoorDashAPIGUI:
         self.create_location_config_tab()
         self.create_misc_config_tab()
         self.create_experiment_config_tab()
+        self.create_charles_proxy_tab()
         self.create_yaml_generator_tab()
         
         # Config buttons were moved to right sidebar actions to be always visible
@@ -677,6 +679,110 @@ class DoorDashAPIGUI:
         
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+
+    def create_charles_proxy_tab(self):
+        """Create Charles Proxy configuration tab"""
+        proxy_frame = ttk.Frame(self.config_notebook)
+        self.config_notebook.add(proxy_frame, text="🌐 Charles Proxy")
+        
+        # Main container with padding
+        main_container = ttk.Frame(proxy_frame)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
+        
+        # Title
+        title_label = ttk.Label(main_container, text="🌐 Charles Proxy Configuration", 
+                               font=(self.choose_font_family(), 12, 'bold'))
+        title_label.pack(pady=(0, 20))
+        
+        # Description
+        desc_text = """Configure Charles Proxy settings for intercepting and analyzing network traffic.
+This is useful for debugging API calls and inspecting request/response data."""
+        ttk.Label(main_container, text=desc_text, font=('Arial', 10), 
+                 foreground='gray', wraplength=600).pack(pady=(0, 20))
+        
+        # Proxy configuration section
+        config_frame = ttk.LabelFrame(main_container, text="Proxy Settings", padding=15)
+        config_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        # Proxy URL field
+        url_frame = ttk.Frame(config_frame)
+        url_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(url_frame, text="Proxy URL:", font=('Arial', 9, 'bold'), width=15).pack(side=tk.LEFT)
+        
+        proxy_url_var = tk.StringVar(value=self.config.get('CHARLES_PROXY_URL', '127.0.0.1'))
+        self.config_vars['CHARLES_PROXY_URL'] = proxy_url_var
+        
+        proxy_url_entry = ttk.Entry(url_frame, textvariable=proxy_url_var, width=30)
+        proxy_url_entry.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Proxy Port field
+        port_frame = ttk.Frame(config_frame)
+        port_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(port_frame, text="Proxy Port:", font=('Arial', 9, 'bold'), width=15).pack(side=tk.LEFT)
+        
+        proxy_port_var = tk.StringVar(value=self.config.get('CHARLES_PROXY_PORT', '8888'))
+        self.config_vars['CHARLES_PROXY_PORT'] = proxy_port_var
+        
+        proxy_port_entry = ttk.Entry(port_frame, textvariable=proxy_port_var, width=10)
+        proxy_port_entry.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Android Emulator section
+        emulator_frame = ttk.LabelFrame(main_container, text="Android Emulator Setup", padding=15)
+        emulator_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        emulator_desc = """Set up an Android emulator with Charles Proxy for network traffic analysis.
+The emulator will be configured to route traffic through the specified proxy."""
+        ttk.Label(emulator_frame, text=emulator_desc, font=('Arial', 10), 
+                 foreground='gray', wraplength=600).pack(pady=(0, 15))
+        
+        # AVD Selection
+        avd_frame = ttk.Frame(emulator_frame)
+        avd_frame.pack(fill=tk.X, pady=(0, 15))
+        ttk.Label(avd_frame, text="AVD Name:", font=('Arial', 9, 'bold'), width=15).pack(side=tk.LEFT)
+        
+        avd_name_var = tk.StringVar(value=self.config.get('ANDROID_AVD_NAME', 'Pixel_9_Pro_-_Charles'))
+        self.config_vars['ANDROID_AVD_NAME'] = avd_name_var
+        
+        avd_entry = ttk.Entry(avd_frame, textvariable=avd_name_var, width=30)
+        avd_entry.pack(side=tk.LEFT, padx=(10, 0))
+        
+        ttk.Button(avd_frame, text="🔍 Auto-detect", 
+                  command=self.auto_detect_avd).pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Emulator controls
+        controls_frame = ttk.Frame(emulator_frame)
+        controls_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Button(controls_frame, text="🚀 Start Emulator", 
+                  command=self.setup_android_emulator).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(controls_frame, text="📱 List Available Emulators", 
+                  command=self.list_android_emulators).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(controls_frame, text="🔧 Configure Proxy on Device", 
+                  command=self.configure_proxy_on_device).pack(side=tk.LEFT)
+        
+        # Status display
+        status_frame = ttk.Frame(emulator_frame)
+        status_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        self.proxy_status_var = tk.StringVar(value="Ready to configure emulator")
+        ttk.Label(status_frame, textvariable=self.proxy_status_var, 
+                 font=('Arial', 9), foreground='blue').pack(anchor=tk.W)
+        
+        # Instructions section
+        instructions_frame = ttk.LabelFrame(main_container, text="Setup Instructions", padding=15)
+        instructions_frame.pack(fill=tk.X)
+        
+        instructions_text = """1. Ensure Charles Proxy is running on your machine
+2. Note the proxy URL and port from Charles Proxy settings
+3. Click "Create & Start Emulator" to set up a new Android emulator
+4. The emulator will be configured to route traffic through Charles Proxy
+5. Install and run your Android app on the emulator
+6. All network traffic will be visible in Charles Proxy
+
+Note: This requires Android SDK and AVD Manager to be properly configured."""
+        
+        ttk.Label(instructions_frame, text=instructions_text, font=('Arial', 9), 
+                 justify=tk.LEFT, wraplength=600).pack(anchor='w')
 
     def create_experiment_config_tab(self):
         """Create a simple placeholder experiment config tab"""
@@ -3247,6 +3353,354 @@ Paste your token below (JWT prefix will be automatically removed):""",
         ttk.Entry(client, textvariable=cv_var).pack(fill=tk.X)
         
         ttk.Label(client, text="Tip: Full settings available on the left tabs.", foreground='gray').pack(anchor='w', pady=(10,0))
+
+    def setup_android_emulator(self):
+        """Set up and start an Android emulator with Charles Proxy configuration"""
+        try:
+            self.proxy_status_var.set("Setting up Android emulator...")
+            self.root.update_idletasks()
+            
+            # Get proxy settings from GUI
+            proxy_url = self.config_vars.get('CHARLES_PROXY_URL', tk.StringVar(value='127.0.0.1')).get()
+            proxy_port = self.config_vars.get('CHARLES_PROXY_PORT', tk.StringVar(value='8888')).get()
+            avd_name = self.config_vars.get('ANDROID_AVD_NAME', tk.StringVar(value='Pixel_9_Pro_-_Charles')).get()
+            
+            if not proxy_url or not proxy_port:
+                self.proxy_status_var.set("Error: Please set proxy URL and port")
+                return
+            
+            if not avd_name:
+                self.proxy_status_var.set("Error: Please set AVD name")
+                return
+            
+            # Run emulator setup in a separate thread
+            threading.Thread(target=self._setup_emulator_threaded, 
+                           args=(proxy_url, proxy_port, avd_name), daemon=True).start()
+            
+        except Exception as e:
+            self.proxy_status_var.set(f"Error: {str(e)}")
+            print(f"Error setting up emulator: {e}")
+
+    def auto_detect_avd(self):
+        """Auto-detect available AVDs and suggest the best one for Charles Proxy"""
+        try:
+            self.proxy_status_var.set("Auto-detecting AVDs...")
+            self.root.update_idletasks()
+            
+            # Find emulator command
+            emulator_path = self._find_emulator()
+            if not emulator_path:
+                self.proxy_status_var.set("Error: Android emulator not found")
+                return
+            
+            # List AVDs
+            try:
+                result = subprocess.run([emulator_path, '-list-avds'], 
+                                     capture_output=True, text=True, timeout=30)
+                if result.returncode == 0 and result.stdout.strip():
+                    avd_list = result.stdout.strip().split('\n')
+                    
+                    # Look for Charles-specific AVD first
+                    charles_avd = None
+                    for avd in avd_list:
+                        if 'charles' in avd.lower():
+                            charles_avd = avd
+                            break
+                    
+                    if charles_avd:
+                        self.config_vars['ANDROID_AVD_NAME'].set(charles_avd)
+                        self.proxy_status_var.set(f"✅ Found perfect AVD: {charles_avd}")
+                    elif avd_list:
+                        self.config_vars['ANDROID_AVD_NAME'].set(avd_list[0])
+                        self.proxy_status_var.set(f"✅ Using AVD: {avd_list[0]}")
+                    else:
+                        self.proxy_status_var.set("No AVDs found")
+                        
+                else:
+                    self.proxy_status_var.set("No AVDs found")
+                    
+            except Exception as e:
+                self.proxy_status_var.set(f"Error detecting AVDs: {str(e)}")
+                
+        except Exception as e:
+            self.proxy_status_var.set(f"Error: {str(e)}")
+            print(f"Error auto-detecting AVD: {e}")
+
+    def _find_emulator(self):
+        """Find the emulator executable path"""
+        emulator_path = shutil.which('emulator')
+        if emulator_path:
+            return emulator_path
+        
+        # Try common Android SDK paths
+        home = os.path.expanduser('~')
+        possible_paths = [
+            f'{home}/Library/Android/sdk/emulator/emulator',
+            f'{home}/Android/Sdk/emulator/emulator',
+            '/usr/local/bin/emulator',
+            '/opt/homebrew/bin/emulator'
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        
+        return None
+
+    def _setup_emulator_threaded(self, proxy_url, proxy_port, avd_name):
+        """Threaded method to set up the emulator"""
+        try:
+            # Find adb
+            adb_path = self._find_adb()
+            if not adb_path:
+                self.proxy_status_var.set("Error: ADB not found. Install Android Platform-Tools")
+                return
+            
+            # Check if AVD exists
+            emulator_path = self._find_emulator()
+            if not emulator_path:
+                self.proxy_status_var.set("Error: Android emulator not found. Install Android SDK")
+                return
+            
+            # List available AVDs to verify
+            try:
+                result = subprocess.run([emulator_path, '-list-avds'], 
+                                     capture_output=True, text=True, timeout=30)
+                if result.returncode == 0:
+                    available_avds = result.stdout.strip().split('\n')
+                    if avd_name not in available_avds:
+                        self.proxy_status_var.set(f"Error: AVD '{avd_name}' not found. Available: {', '.join(available_avds)}")
+                        return
+                else:
+                    self.proxy_status_var.set("Error: Cannot list AVDs")
+                    return
+            except Exception as e:
+                self.proxy_status_var.set(f"Error listing AVDs: {str(e)}")
+                return
+            
+            # Start emulator
+            self.proxy_status_var.set(f"Starting emulator: {avd_name}")
+            self.root.update_idletasks()
+            
+            # Start emulator with proxy settings
+            emulator_cmd = [
+                emulator_path, '-avd', avd_name, 
+                '-http-proxy', f'{proxy_url}:{proxy_port}',
+                '-no-snapshot-load',
+                '-no-boot-anim',  # Faster boot
+                '-gpu', 'swiftshader_indirect',  # Software rendering
+                '-memory', '2048',  # 2GB RAM
+                '-cores', '2'  # 2 CPU cores
+            ]
+            
+            try:
+                # Start emulator in background
+                process = subprocess.Popen(emulator_cmd, 
+                                        cwd=os.path.dirname(emulator_path),
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
+                
+                self.proxy_status_var.set(f"Emulator started! PID: {process.pid}")
+                self.root.update_idletasks()
+                
+                # Wait for device to be ready
+                if self._wait_for_device(adb_path):
+                    self.proxy_status_var.set("Device ready! Configuring proxy...")
+                    self.root.update_idletasks()
+                    
+                    # Configure proxy on the device
+                    self._configure_device_proxy(adb_path, proxy_url, proxy_port)
+                else:
+                    self.proxy_status_var.set("Device not ready within timeout")
+                    
+            except Exception as e:
+                self.proxy_status_var.set(f"Error starting emulator: {str(e)}")
+                
+        except Exception as e:
+            self.proxy_status_var.set(f"Error: {str(e)}")
+            print(f"Error in emulator setup: {e}")
+
+    def _wait_for_device(self, adb_path, timeout=120):
+        """Wait for the emulator device to be ready"""
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                result = subprocess.run([adb_path, 'wait-for-device'], 
+                                     capture_output=True, text=True, timeout=10)
+                if result.returncode == 0:
+                    return True
+            except subprocess.TimeoutExpired:
+                pass
+            
+            # Check if device is listed
+            try:
+                result = subprocess.run([adb_path, 'devices'], 
+                                     capture_output=True, text=True, timeout=10)
+                if result.returncode == 0 and 'device' in result.stdout:
+                    return True
+            except subprocess.TimeoutExpired:
+                pass
+            
+            time.sleep(5)
+        
+        return False
+
+    def _configure_device_proxy(self, adb_path, proxy_url, proxy_port, device_id=None):
+        """Configure proxy settings on the Android device"""
+        try:
+            # Build adb command with optional device targeting
+            adb_cmd = [adb_path]
+            if device_id:
+                adb_cmd.extend(['-s', device_id])
+            
+            # Wait for device to be ready
+            result = subprocess.run(adb_cmd + ['wait-for-device'], capture_output=True, text=True)
+            if result.returncode != 0:
+                self.proxy_status_var.set("Error: Device not ready")
+                return
+            
+            # Set proxy using Android settings
+            proxy_settings = f"{proxy_url}:{proxy_port}"
+            
+            # Method 1: Try using Android settings database
+            try:
+                subprocess.run(adb_cmd + ['shell', 'settings', 'put', 'global', 'http_proxy', proxy_settings], 
+                             capture_output=True, text=True)
+                self.proxy_status_var.set(f"Proxy configured: {proxy_settings}")
+            except:
+                # Method 2: Try using iptables (requires root)
+                try:
+                    subprocess.run(adb_cmd + ['shell', 'su', '-c', f'iptables -t nat -A OUTPUT -p tcp --dport 80 -j DNAT --to-destination {proxy_url}:{proxy_port}'], 
+                                 capture_output=True, text=True)
+                    subprocess.run(adb_cmd + ['shell', 'su', '-c', f'iptables -t nat -A OUTPUT -p tcp --dport 443 -j DNAT --to-destination {proxy_url}:{proxy_port}'], 
+                                 capture_output=True, text=True)
+                    self.proxy_status_var.set(f"Proxy configured via iptables: {proxy_settings}")
+                except:
+                    self.proxy_status_var.set("Proxy configured. Manual setup may be required in device settings")
+            
+        except Exception as e:
+            self.proxy_status_var.set(f"Error configuring proxy: {str(e)}")
+
+    def list_android_emulators(self):
+        """List available Android emulators"""
+        try:
+            self.proxy_status_var.set("Listing available emulators...")
+            self.root.update_idletasks()
+            
+            # Find emulator command
+            emulator_path = shutil.which('emulator')
+            if not emulator_path:
+                # Try common Android SDK paths
+                home = os.path.expanduser('~')
+                possible_paths = [
+                    f'{home}/Library/Android/sdk/emulator/emulator',
+                    f'{home}/Android/Sdk/emulator/emulator',
+                    '/usr/local/bin/emulator',
+                    '/opt/homebrew/bin/emulator'
+                ]
+                
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        emulator_path = path
+                        break
+            
+            if emulator_path:
+                # List AVDs
+                result = subprocess.run([emulator_path, '-list-avds'], capture_output=True, text=True)
+                if result.returncode == 0 and result.stdout.strip():
+                    avd_list = result.stdout.strip().split('\n')
+                    self.proxy_status_var.set(f"Found {len(avd_list)} emulator(s): {', '.join(avd_list)}")
+                else:
+                    self.proxy_status_var.set("No emulators found. Create one first.")
+            else:
+                self.proxy_status_var.set("Android emulator not found. Install Android SDK")
+                
+        except Exception as e:
+            self.proxy_status_var.set(f"Error listing emulators: {str(e)}")
+
+    def configure_proxy_on_device(self):
+        """Configure proxy on currently connected device"""
+        try:
+            proxy_url = self.config_vars.get('CHARLES_PROXY_URL', tk.StringVar(value='127.0.0.1')).get()
+            proxy_port = self.config_vars.get('CHARLES_PROXY_PORT', tk.StringVar(value='8888')).get()
+            avd_name = self.config_vars.get('ANDROID_AVD_NAME', tk.StringVar(value='Pixel_9_Pro_-_Charles')).get()
+            
+            if not proxy_url or not proxy_port:
+                self.proxy_status_var.set("Error: Please set proxy URL and port")
+                return
+            
+            # Find adb
+            adb_path = self._find_adb()
+            if not adb_path:
+                self.proxy_status_var.set("Error: ADB not found. Install Android Platform-Tools")
+                return
+            
+            # Check if device is connected
+            result = subprocess.run([adb_path, 'devices'], capture_output=True, text=True)
+            if result.returncode != 0:
+                self.proxy_status_var.set("Error: ADB not responding")
+                return
+            
+            if 'device' not in result.stdout:
+                self.proxy_status_var.set("No Android device connected")
+                return
+            
+            # If multiple devices, try to target the specific AVD
+            devices = []
+            for line in result.stdout.split('\n'):
+                if '\tdevice' in line:
+                    device_id = line.split('\t')[0]
+                    devices.append(device_id)
+            
+            if len(devices) > 1:
+                # Try to find the emulator with our AVD name
+                target_device = None
+                for device_id in devices:
+                    try:
+                        # Get device properties
+                        prop_result = subprocess.run([adb_path, '-s', device_id, 'shell', 'getprop', 'ro.product.model'], 
+                                                  capture_output=True, text=True, timeout=10)
+                        if prop_result.returncode == 0 and avd_name.lower() in prop_result.stdout.lower():
+                            target_device = device_id
+                            break
+                    except:
+                        pass
+                
+                if target_device:
+                    self.proxy_status_var.set(f"Targeting device: {target_device}")
+                    # Configure proxy on specific device
+                    self._configure_device_proxy(adb_path, proxy_url, proxy_port, target_device)
+                else:
+                    self.proxy_status_var.set("Multiple devices found. Please specify target device.")
+            else:
+                # Single device, configure normally
+                self._configure_device_proxy(adb_path, proxy_url, proxy_port)
+            
+        except Exception as e:
+            self.proxy_status_var.set(f"Error: {str(e)}")
+
+    def _find_adb(self):
+        """Find the adb executable path"""
+        # Try shutil.which first
+        adb_path = shutil.which('adb')
+        if adb_path:
+            return adb_path
+        
+        # Try common macOS installation paths
+        home = os.path.expanduser('~')
+        possible_paths = [
+            f'{home}/Library/Android/sdk/platform-tools/adb',
+            f'{home}/Android/Sdk/platform-tools/adb',
+            '/usr/local/bin/adb',
+            '/opt/homebrew/bin/adb',
+            '/usr/bin/adb'
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+        
+        return None
 
 def main():
     """Main function to run the GUI application"""
